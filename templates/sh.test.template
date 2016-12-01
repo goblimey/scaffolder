@@ -1,0 +1,89 @@
+#! /bin/sh
+
+# This script creates mock objects and runs the tests.  It's generated the first 
+# time you run the Goblimey scaffolder.  If you need to recreate it, run the 
+# scaffolder with the -overwrite option.
+#
+# With no argument, run all tests.  With the argument "unit" run just the unit
+# tests.  With argument "int" run just the integration tests.  This is done by
+# chhoosing the right names for the test methods - TestUnitIndexWithOnePerson()
+# is assumed to be a unit test and TestIntIndexWithOnePerson() is assumed to
+# be an integration test.
+#
+# The script must be run from the project root, which is where it is stored.  It
+# has the directories containing test code hard-wired.  As you addyour own modules, 
+# you need to keep it up to date. 
+
+if test -f setenv.sh
+then
+    . setenv.sh
+fi
+
+testcmd='go test -test.v'
+if test ! -z $1
+then
+	case $1 in
+	unit )
+		testcmd="$testcmd -run='^TestUnit'";;
+	int )
+		testcmd="$testcmd -run='^TestInt'";;
+	* )
+		echo "first argument must be unit or int" >&2
+		exit -1
+		;;
+	esac
+fi
+
+startDir=%%GRAVE%%pwd%%GRAVE%%
+
+# Build mocks
+mkdir -p ${startDir}/src/{{.SourceBase}}/generated/crud/mocks/pegomock
+dir='{{.SourceBase}}/generated/crud/mocks/pegomock'
+echo ${dir}
+cd ${startDir}/src/$dir
+pegomock generate --package pegomock --output=mock_template.go {{.SourceBase}}/generated/crud/retrofit/template Template
+pegomock generate --package pegomock --output=mock_services.go {{.SourceBase}}/generated/crud/services Services
+pegomock generate --package pegomock --output=mock_response_writer.go net/http ResponseWriter
+{{range .Resources}}
+    mkdir -p {{.NameWithLowerFirst}}
+    pegomock generate --package {{.NameWithLowerFirst}} --output={{.NameWithLowerFirst}}/mock_repository.go {{.SourceBase}}/generated/crud/repositories/{{.NameWithLowerFirst}} Repository
+{{end}}
+
+# Build
+
+go build github.com/goblimey/animals
+
+# Test
+
+{{range .Resources}}
+dir='{{.SourceBase}}/generated/crud/models/{{.NameWithLowerFirst}}'
+echo ${dir}
+cd ${startDir}/src/$dir
+${testcmd}
+
+dir='{{.SourceBase}}/generated/crud/models/{{.NameWithLowerFirst}}/gorp'
+echo ${dir}
+cd ${startDir}/src/$dir
+${testcmd}
+
+dir='{{.SourceBase}}/generated/crud/repositories/{{.NameWithLowerFirst}}/gorpmysql'
+echo ${dir}
+cd ${startDir}/src/$dir
+${testcmd}
+
+dir='{{.SourceBase}}/generated/crud/forms/{{.NameWithLowerFirst}}'
+echo ${dir}
+cd ${startDir}/src/$dir
+${testcmd}
+
+dir='{{.SourceBase}}/generated/crud/forms/{{.NameWithLowerFirst}}'
+echo ${dir}
+cd ${startDir}/src/$dir
+${testcmd}
+
+dir='{{.SourceBase}}/generated/crud/controllers/{{.NameWithLowerFirst}}'
+echo ${dir}
+cd ${startDir}/src/$dir
+${testcmd}
+
+{{end}}

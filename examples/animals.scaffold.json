@@ -1,0 +1,63 @@
+{
+    "name": "animals",
+    "sourceBase": "github.com/goblimey/animals",
+    "db": "mysql",
+    "dblogin": "webuser:secret@tcp(localhost:3306)/animals",
+    "dbuser": "webuser",
+    "dbpassword": "secret",
+    "orm": "gorp",
+    "Resources": [
+        {
+            "name": "cat",
+            "fields": [
+                {
+                    "name": "name",
+                    "type": "string",
+                    "mandatory": true,
+                    "testValues": [
+                        "a",
+                        "b"
+                    ]
+                },
+                {
+                    "name": "breed",
+                    "type": "string",
+                    "mandatory": true
+                },
+                {
+                    "name": "age",
+                    "type": "int",
+                    "mandatory": true,
+					"excludeFromDisplay": true
+                },
+				{
+                    "name": "weight",
+                    "type": "float",
+                    "mandatory": true,
+					"excludeFromDisplay": true
+                },
+				{
+                    "name": "chipped",
+                    "type": "bool",
+					"excludeFromDisplay": true
+                }
+            ]
+        },
+        {
+            "name": "mouse",
+            "plural": "mice",
+            "fields": [
+                {
+                    "name": "name",
+                    "type": "string",
+                    "mandatory": true
+                },
+                {
+                    "name": "breed",
+                    "type": "string",
+					"excludeFromDisplay": true
+                }
+            ]
+        }
+    ]
+}

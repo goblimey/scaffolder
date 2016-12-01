@@ -1,4 +1,4 @@
-# scaffold
+# scaffolder
 Given a description of a DB table, builds a website that provides CRUD operations.  Based on the Ruby-on-Rails scaffold generator.
 
 Fetching and Building the Scaffolder

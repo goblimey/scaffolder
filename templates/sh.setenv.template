@@ -1,0 +1,45 @@
+#!/bin/sh
+
+# This script sets the environment for the {{.Name}} application server.
+# It's generated the first time you run the Goblimey scaffolder.  If you
+# need to recreate it, run the scaffolder with the -overwrite option.
+#
+# To run the application server, change directory to the one containing this file 
+# and run the commands in it, then run the server.  For example:
+#
+#    cd $HOME/workspaces/films
+#    . setenv.sh
+#    {{.Name}}
+#
+# (Note the "." at the start of the second command.)
+#
+# The script adds to some environment variables such as the PATH, and it would be
+# bad to do this over and over.  The variable {{.NameAllUpper}}_SETUP is used to 
+# ensure that those variables are only updated once, so it's safe to run this 
+# setup script within other scripts that are run repeatedly. 
+
+if test -z ${{.NameAllUpper}}_SETUP
+then
+    # ensure that {{.NameAllUpper}}_SETUP exists
+    {{.NameAllUpper}}_SETUP="notdone"
+	export {{.NameAllUpper}}_SETUP
+fi
+
+if test ${{.NameAllUpper}}_SETUP != "done"
+then
+    {{.NameAllUpper}}_SETUP="done"
+	export {{.NameAllUpper}}_SETUP
+    # create GOPATH with the project directory or if it already exists, add the 
+	# project directory to it
+    if test -z $GOPATH
+    then
+       GOPATH={{.CurrentDir}}
+       export GOPATH
+    else
+        GOPATH=$GOPATH:{{.CurrentDir}}
+        export GOPATH
+	fi
+	# Add the bin directory to the PATH.
+	PATH={{.CurrentDir}}/bin:$PATH
+    export PATH
+fi

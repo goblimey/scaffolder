@@ -1,0 +1,78 @@
+{{$resourceNameLower := .NameWithLowerFirst}}
+{{$resourceNameUpper := .NameWithUpperFirst}}
+package {{.NameWithLowerFirst}}
+
+{{.Imports}}
+
+var expectedID1 uint64 = 42
+var expectedID2 uint64 = 43
+{{/* This creates the expected values using the field names and the test 
+     values, something like:
+	 var expectedName1 string = "s1"
+	 var expectedAge1 int = 2 
+	 var expectedName2 string = "s3"
+	 var expectedAge2 int = 4 */}}
+{{range $index, $element := .Fields}}
+	{{if eq .Type "string"}}
+		var expected{{.NameWithUpperFirst}}1 {{.GoType}} = "{{index .TestValues 0}}"
+	{{else}}
+		var expected{{.NameWithUpperFirst}}1 {{.GoType}} = {{index .TestValues 0}}
+	{{end}}
+	{{if eq .Type "string"}}
+		var expected{{.NameWithUpperFirst}}2 {{.GoType}} = "{{index .TestValues 1}}"
+	{{else}}
+		var expected{{.NameWithUpperFirst}}2 {{.GoType}} = {{index .TestValues 1}}
+	{{end}}
+{{end}}
+
+// Create a {{.NameWithLowerFirst}} and a ConcreteSingleItemForm containing it.  Retrieve the {{.NameWithLowerFirst}}.
+func TestUnitCreate{{.NameWithUpperFirst}}FormAndRetrieve{{.NameWithUpperFirst}}(t *testing.T) {
+	{{.NameWithLowerFirst}}Form := Create{{.NameWithUpperFirst}}Form(expectedID1, {{range .Fields}}expected{{.NameWithUpperFirst}}1{{if not .LastItem}}, {{end}}{{end}})
+	if {{.NameWithLowerFirst}}Form.{{.NameWithUpperFirst}}().ID() != expectedID1 {
+		t.Errorf("Expected ID to be %d actually %d", expectedID1, {{.NameWithLowerFirst}}Form.{{.NameWithUpperFirst}}().ID())
+	}
+	{{range .Fields}}
+		if {{$resourceNameLower}}Form.{{$resourceNameUpper}}().{{.NameWithUpperFirst}}() != expected{{.NameWithUpperFirst}}1 {
+			t.Errorf("Expected {{.NameWithLowerFirst}} to be %s actually %s", expected{{.NameWithUpperFirst}}1, {{$resourceNameLower}}Form.{{$resourceNameUpper}}().{{.NameWithUpperFirst}}())
+		}
+	{{end}}
+}
+
+{{$fields := .Fields}}
+{{range .Fields}}
+	{{if .Mandatory}}
+		{{if eq .Type "string"}}
+			{{$thisField := .NameWithLowerFirst}}
+			{{$thisFieldUpper := .NameWithUpperFirst}}
+			// Create a {{$resourceNameUpper}}Form containing a {{$resourceNameLower}} with no {{.NameWithLowerFirst}}, and validate it.
+			func TestUnitCreate{{$resourceNameUpper}}FormNo{{.NameWithUpperFirst}}(t *testing.T) {
+				expectedError := "you must specify the {{.NameWithLowerFirst}}"
+				{{$resourceNameLower}}Form := Create{{$resourceNameUpper}}Form(expectedID2, {{range $fields}}{{if eq $thisField .NameWithLowerFirst}}""{{if not .LastItem}}, {{end}}{{else}}expected{{.NameWithUpperFirst}}2{{if .LastItem}}){{else}}, {{end}}{{end}}{{end}}
+				if {{$resourceNameLower}}Form.Validate() {
+					t.Errorf("Expected the validation to fail with missing {{$thisField}}")
+				} else {
+					if {{$resourceNameLower}}Form.ErrorForField("{{$thisFieldUpper}}") != expectedError {
+						t.Errorf("Expected \"%s\", got \"%s\"", expectedError,
+							{{$resourceNameLower}}Form.ErrorForField("{{$thisFieldUpper}}"))
+					}
+				}
+				errors := {{$resourceNameLower}}Form.FieldErrors()
+				if len(errors) != 1 {
+					t.Errorf("Expected 1 error, got %d", len(errors))
+				}
+			}
+		{{end}}
+	{{end}}
+{{end}}
+
+
+func Create{{.NameWithUpperFirst}}Form(id uint64, {{range .Fields}}{{.NameWithLowerFirst}} {{.GoType}}{{if not .LastItem}}, {{end}}{{end}}) ConcreteSingleItemForm {
+	var {{.NameWithLowerFirst}} {{.NameWithLowerFirst}}Model.Concrete{{.NameWithUpperFirst}}
+	{{.NameWithLowerFirst}}.SetID(id)
+	{{range .Fields}}
+		{{$resourceNameLower}}.Set{{.NameWithUpperFirst}}({{.NameWithLowerFirst}})
+	{{end}}
+	var {{.NameWithLowerFirst}}Form ConcreteSingleItemForm
+	{{.NameWithLowerFirst}}Form.Set{{.NameWithUpperFirst}}(&{{.NameWithLowerFirst}})
+	return {{.NameWithLowerFirst}}Form
+}
