@@ -72,7 +72,7 @@ type Resource struct {
 	Imports                   string
 	SourceBase                string // copied from the spec record
 	DB                        string // copied from the spec record
-	DBLogin                   string // copied from the spec record
+	DBURL                     string // copied from the spec record
 	Fields                    []Field
 }
 
@@ -81,21 +81,23 @@ func (r Resource) String() string {
 	for _, f := range r.Fields {
 		fields += f.String() + "\n"
 	}
-	return fmt.Sprintf("{Name=%s,PluralName=%s,TableName=%s,NameWithLowerFirst=%s,NameWithUpperFirst=%s,PluralNameWithLowerFirst=%s,PluralNameWithUpperFirst=%s,NameAllLower=%s,ProjectName=%s,imports=%s,DB=%s,DBLogin=%s,fields=%s}",
+	return fmt.Sprintf("{Name=%s,PluralName=%s,TableName=%s,NameWithLowerFirst=%s,NameWithUpperFirst=%s,PluralNameWithLowerFirst=%s,PluralNameWithUpperFirst=%s,NameAllLower=%s,ProjectName=%s,imports=%s,DB=%s,DBURL=%s,fields=%s}",
 		r.Name, r.PluralName, r.TableName,
 		r.NameWithLowerFirst, r.NameWithUpperFirst,
 		r.PluralNameWithLowerFirst, r.PluralNameWithUpperFirst, r.NameAllLower,
-		r.ProjectName, r.Imports, r.DB, r.DBLogin, fields)
+		r.ProjectName, r.Imports, r.DB, r.DBURL, fields)
 }
 
 type Spec struct {
 	Name               string `json:"name"`
 	SourceBase         string `json:"sourceBase"`
 	DB                 string `json:"db"`
-	DBLogin            string `json:"dblogin"`
 	DBUser             string `json:"dbuser"`
 	DBPassword         string `json:"dbpassword"`
+	DBServer           string `json:dbserver`
+	DBPort             string `json:dbport`
 	ORM                string `json:orm`
+	DBURL              string
 	CurrentDir         string
 	NameWithUpperFirst string
 	NameWithLowerFirst string
@@ -109,16 +111,17 @@ func (s Spec) String() string {
 	for _, r := range s.Resources {
 		resources += r.String() + "\n"
 	}
-	return fmt.Sprintf("{name=%s db=%s dblogin=%s %d resources={%s}}", s.Name, s.DB,
-		s.DBLogin, len(s.Resources), resources)
+	return fmt.Sprintf("{name=%s sourceBase=%s db=%s dbserver=%s dbport=s dbuser=%s dbpassword=%s dburl=s %d resources={%s}}",
+		s.Name, s.SourceBase, s.DB, s.DBServer, s.DBPort, s.DBUser, s.DBPassword,
+		s.DBURL, len(s.Resources), resources)
 }
 
 var templateMap map[string]*template.Template
 
 var verbose bool
 var overwriteMode bool
-var templateRoot string
-var projectRoot string
+var templateDir string
+var workspaceDir string
 
 func init() {
 	const (
@@ -129,8 +132,8 @@ func init() {
 	flag.BoolVar(&verbose, "v", defaultVerbose, usage+" (shorthand)")
 
 	flag.BoolVar(&overwriteMode, "overwrite", false, "overwrite all files, not just the generated directory")
-	flag.StringVar(&templateRoot, "templatedir", "", "the directory containing the scaffold templates (normally this is not specified and built in templates are used)")
-	flag.StringVar(&projectRoot, "projectRoot", ".", "the project directory")
+	flag.StringVar(&templateDir, "templatedir", "", "the directory containing the scaffold templates (normally this is not specified and built in templates are used)")
+	flag.StringVar(&workspaceDir, "workspace", ".", "the Go workspace directory")
 
 	templateMap = make(map[string]*template.Template)
 }
@@ -159,10 +162,10 @@ func main() {
 	}
 	jsonFile.Close()
 
-	err = os.Chdir(projectRoot)
+	err = os.Chdir(workspaceDir)
 	if err != nil {
 		log.Printf("cannot change directory to project root directory %s - %s",
-			err.Error(), projectRoot)
+			err.Error(), workspaceDir)
 		os.Exit(-1)
 	}
 
@@ -193,13 +196,23 @@ func main() {
 	// directory as prototypes.  The second choice is intended for use only during
 	// development of the scaffolder.
 
-	if templateRoot == "" {
+	if templateDir == "" {
 		createTemplates(true)
 	} else {
 		createTemplates(false)
 	}
 
 	// Enhance the data by setting the derived fields.
+
+	if spec.DBPort == "" {
+		if spec.DB == "mysql" {
+			spec.DBPort = "3306"
+		}
+	}
+
+	// "webuser:secret@tcp(localhost:3306)/animals"
+	spec.DBURL = spec.DBUser + ":" + spec.DBPassword + "@tcp(" +
+		spec.DBServer + ":" + spec.DBPort + ")/" + spec.Name
 
 	// "animals" => "Animals"
 	spec.NameWithUpperFirst = upperFirstRune(spec.Name)
@@ -238,7 +251,7 @@ func main() {
 		spec.Resources[i].ProjectNameWithUpperFirst =
 			upperFirstRune(spec.Name)
 		spec.Resources[i].DB = spec.DB
-		spec.Resources[i].DBLogin = spec.DBLogin
+		spec.Resources[i].DBURL = spec.DBURL
 
 		// "CatAndDog" => "catAndDog"
 		spec.Resources[i].NameWithLowerFirst = lowerFirstRune(spec.Resources[i].Name)
@@ -388,30 +401,46 @@ func main() {
 			err.Error())
 		os.Exit(-1)
 	}
+
 	if verbose {
 		log.Printf("enhanced spec:\n%s\n", data)
 	}
 
 	// Build the project from the templates and the JSON.
 
-	// Build the scripts at the top level of the project.
-	templateName := "sh.setenv.template"
-	targetName := "setenv.sh"
-	createFileFromTemplateAndSpec(projectRoot, targetName, templateName, spec,
+	// The project directory is something like
+	// src/github.com/goblimey/animals in the Go workspace.
+
+	projectDir := workspaceDir + "/src/" + spec.SourceBase
+
+	// install.sh script with permission u+rwx
+	templateName := "script.install.sh.template"
+	targetName := "install.sh"
+	createFileFromTemplateAndSpec(projectDir, targetName, templateName, spec,
 		overwriteMode)
 
-	templateName = "sh.test.template"
+	var permisssions os.FileMode = 0700
+	os.Chmod(projectDir+"/"+targetName, permisssions)
+
+	// test.sh script with permission u+rwx
+	templateName = "script.test.sh.template"
 	targetName = "test.sh"
-	createFileFromTemplateAndSpec(projectRoot, targetName, templateName, spec,
+	createFileFromTemplateAndSpec(projectDir, targetName, templateName, spec,
+		overwriteMode)
+	os.Chmod(projectDir+"/"+targetName, permisssions)
+
+	// Windoze batch files
+	templateName = "script.install.bat.template"
+	targetName = "install.bat"
+	createFileFromTemplateAndSpec(projectDir, targetName, templateName, spec,
 		overwriteMode)
 
-	templateName = "sh.build.template"
-	targetName = "build.sh"
-	createFileFromTemplateAndSpec(projectRoot, targetName, templateName, spec,
+	templateName = "script.test.bat.template"
+	targetName = "test.bat"
+	createFileFromTemplateAndSpec(projectDir, targetName, templateName, spec,
 		overwriteMode)
 
 	// Build the main program.
-	targetDir := projectRoot + "/src/" + spec.SourceBase // src/github.com/goblimey/people
 	templateName = "main.go.template"
 	targetName = spec.NameWithLowerFirst + ".go"
 
@@ -451,21 +480,21 @@ func main() {
 
 	spec.Imports += `
 	)`
-	createFileFromTemplateAndSpec(targetDir, targetName, templateName, spec,
+	createFileFromTemplateAndSpec(projectDir, targetName, templateName, spec,
 		overwriteMode)
 
 	// Build the static views.  It's assumed that the user may want to edit
 	// these and add their own stuff, so they are not overwritten.
 
 	// views/stylesheets/scaffold.css - the static stylesheet.
-	stylesheetDir := projectRoot + "/views/stylesheets"
+	stylesheetDir := projectDir + "/views/stylesheets"
 	targetName = "scaffold.css"
 	templateName = "view.stylesheets.scaffold.css.template"
 	createFileFromTemplateAndSpec(stylesheetDir, targetName, templateName, spec,
 		overwriteMode)
 
 	// views/html/index.html - the static application home page.
-	htmlDir := projectRoot + "/views/html"
+	htmlDir := projectDir + "/views/html"
 	targetName = "index.html"
 	templateName = "view.index.ghtml.template"
 	createFileFromTemplateAndSpec(htmlDir, targetName, templateName, spec,
@@ -481,21 +510,21 @@ func main() {
 
 	// views/generated/crud/templates/_base.ghtml - the prototype for all generated
 	// pages.
-	generatedDir := projectRoot + "/views/generated/crud/templates"
+	generatedDir := projectDir + "/views/generated/crud/templates"
 	targetName = "_base.ghtml"
 	templateName = "view.base.ghtml.template"
 	createFileFromTemplateAndSpec(generatedDir, targetName, templateName, spec,
 		true)
 
 	// Generate the sql scripts.
-	crudBase := targetDir + "/generated/crud"
-	sqlDir := crudBase + "/sql"
+	sqlDir := projectDir + "/generated/sql"
 	templateName = "sql.create.db.template"
 	targetName = "create.db.sql"
 	createFileFromTemplateAndSpec(sqlDir, targetName, templateName, spec, true)
 
 	// Generate the utilities.
 
+	crudBase := projectDir + "/generated/crud"
 	utilitiesDir := crudBase + "/utilities"
 	templateName = "utilities.go.template"
 	targetName = "utilities.go"
@@ -839,7 +868,7 @@ func main() {
 
 		// views/generated/crud/templates/index.ghtml - html template for the index
 		// page for the model.
-		ghtmlDir := projectRoot + "/views/generated/crud/templates/" +
+		ghtmlDir := projectDir + "/views/generated/crud/templates/" +
 			resource.NameAllLower
 		targetName = "index.ghtml"
 		templateName = "view.resource.index.ghtml.template"
@@ -928,32 +957,40 @@ func createFileFromTemplateAndResource(targetDir string, targetName string,
 func createAndOpenFile(targetDir string, targetName string,
 	overwrite bool) (*os.File, error) {
 
-	file, err := os.Open(targetDir)
-	if err != nil {
-		if verbose {
-			log.Printf("creating directory %s", targetDir)
-		}
+	log.SetPrefix("createAndOpenFile ")
 
-		err = os.MkdirAll(targetDir, 0777)
-
-		if err != nil {
-			log.Println("cannot create target directory %s - %s ", targetDir, err.Error())
-			return nil, err
-		}
+	if verbose {
+		log.Printf("%s/%s verbose %v", targetDir, targetName, verbose)
 	}
 
-	// If the file already exists do not write to it unless we are in overwrite
+	// Ensure that the target directory exists.
+	err := os.MkdirAll(targetDir, 0777)
+	if err != nil {
+		log.Printf("cannot create target directory %s - %s ", targetDir, err.Error())
+		return nil, err
+	}
+
+	// If the file already exists, do not write to it except in overwrite
 	// mode.
 
-	targetPathName := targetDir + "/" + targetName
-
 	if !overwrite {
-		fileInfoList, err := file.Readdir(0)
+		dir, err := os.Open(targetDir)
 		if err != nil {
-			log.Println("cannot scan target directory %s - %s ",
-				targetPathName, err.Error())
+			log.Printf("cannot open target directory %s - %s ",
+				targetDir, err.Error())
+		}
+
+		defer dir.Close()
+
+		// Get the contents of the target directory
+		fileInfoList, err := dir.Readdir(0)
+		if err != nil {
+			log.Printf("cannot scan target directory %s - %s ",
+				targetDir, err.Error())
 			return nil, err
 		}
+
+		// Scan the target directory to see if the file already exists.
 		for _, fileInfo := range fileInfoList {
 			if fileInfo.Name() == targetName {
 				if verbose {
@@ -964,13 +1001,14 @@ func createAndOpenFile(targetDir string, targetName string,
 			}
 		}
 	}
-	file.Close()
+
+	targetPathName := targetDir + "/" + targetName
 
 	if verbose {
 		log.Printf("Creating file %s - overwrite %v.",
 			targetPathName, overwrite)
 	}
-	file, err = os.Create(targetPathName)
+	file, err := os.Create(targetPathName)
 	if err != nil {
 		log.Println("cannot create target file %s for writing - %s ",
 			targetPathName, err.Error())
