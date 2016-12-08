@@ -1,5 +1,7 @@
 #! /bin/sh
 
+# Script to test the components of the {{.NameAllUpper}} web application server.
+#
 # This script creates mock objects and runs the tests.  It's generated the first 
 # time you run the Goblimey scaffolder.  If you need to recreate it, run the 
 # scaffolder with the -overwrite option.
@@ -11,13 +13,12 @@
 # be an integration test.
 #
 # The script must be run from the project root, which is where it is stored.  It
-# has the directories containing test code hard-wired.  As you addyour own modules, 
+# has the directories containing test code hard-wired.  As you add your own modules, 
 # you need to keep it up to date. 
+#
+# The script assumes that the go tools are available via the PATH and that the
+# GOPATH variable contains the name of the Go projects directory.
 
-if test -f setenv.sh
-then
-    . setenv.sh
-fi
 
 testcmd='go test -test.v'
 if test ! -z $1
@@ -51,7 +52,7 @@ pegomock generate --package pegomock --output=mock_response_writer.go net/http R
 
 # Build
 
-go build github.com/goblimey/animals
+go build github.com/goblimey/{{.NameWithLowerFirst}}
 
 # Test
 

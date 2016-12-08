@@ -24,7 +24,7 @@ type GorpMysqlRepository struct {
 func MakeRepository(verbose bool) ({{.NameWithLowerFirst}}Repo.Repository, error) {
 	log.SetPrefix("{{.PluralNameWithLowerFirst}}.MakeRepository() ")
 
-	db, err := sql.Open("{{.DB}}", "{{.DBLogin}}")
+	db, err := sql.Open("{{.DB}}", "{{.DBURL}}")
 	if err != nil {
 		log.Printf("failed to get DB handle - %s\n" + err.Error())
 		return nil, errors.New("failed to get DB handle - " + err.Error())
