@@ -251,7 +251,31 @@ func marshal(request *restful.Request, response *restful.Response) {
 
 				// "GET http://server:port/{{.PluralNameWithLowerFirst}}/1/edit" - fetch the {{.PluralNameWithLowerFirst}} record
 				// given by the ID in the request and display the form to edit it.
+				{{.NameWithLowerFirst}} := services.Make{{.NameWithUpperFirst}}()
 				form := services.Make{{.NameWithUpperFirst}}Form()
+				form.Set{{.NameWithUpperFirst}}({{.NameWithLowerFirst}})
+				// The URI should contain an ID as a string.  Parse and copy it.
+				var id uint64 = 0
+				idStr := request.PathParameter("id")
+				if verbose {
+					log.Printf("id %s", idStr)
+				}
+				if idStr == "" {
+					// This should never happen
+					em := fmt.Sprintf("id is not set in the request, must be an unsigned integer")
+					log.Printf("%s\n", em)
+					form.SetErrorMessageForField("ID", "Internal error - " + em)
+				}
+					
+				id, err = strconv.ParseUint(idStr, 10, 64)
+				if err != nil {
+					em := fmt.Sprintf("invalid id %s in request, must be an unsigned integer - %s", 
+						idStr, err.Error())
+					log.Printf("%s\n", em)
+					form.SetErrorMessageForField("ID", "ID must be a whole number greater than 0")
+				}
+				{{.NameWithLowerFirst}}.SetID(id)
+				
 				controller.Edit(request, response, form)
 
 
@@ -262,7 +286,8 @@ func marshal(request *restful.Request, response *restful.Response) {
 
 				// Create an empty {{.NameWithLowerFirst}} to get started.
 				{{.NameWithLowerFirst}} := services.Make{{.NameWithUpperFirst}}()
-				form := services.MakeInitialised{{.NameWithUpperFirst}}Form({{.NameWithLowerFirst}})
+				form := services.Make{{.NameWithUpperFirst}}Form()
+				form.Set{{.NameWithUpperFirst}}({{.NameWithLowerFirst}})
 				controller.New(request, response, form)
 
 
@@ -274,16 +299,33 @@ func marshal(request *restful.Request, response *restful.Response) {
 				// Get the ID from the HTML form data .  The data only contains the
 				// ID so the resulting {{.NameWithUpperFirst}}Form may be marked 
 				// as invalid, but we are only interested in the ID.
-				form := makeValidated{{.NameWithUpperFirst}}FormFromRequest(request, &services)
-
-				if form.{{.NameWithUpperFirst}}().ID() == 0 {
-					// The ID in the HTML form data is junk.
-					// This request is normally made from a link in a view.  The
-					// link should always be correct, so this should never happen!
-					em := fmt.Sprintf("illegal id")
-					log.Println(em)
-					controller.ErrorHandler(request, response, em)
+				{{.NameWithLowerFirst}} := services.Make{{.NameWithUpperFirst}}()
+				form := services.Make{{.NameWithUpperFirst}}Form()
+				form.Set{{.NameWithUpperFirst}}({{.NameWithLowerFirst}})
+				
+				// Get the ID from the request and create a form containing a
+				// {{.NameWithLowerFirst}} with only the ID set.  The resulting 
+				// form will be  invalid, but we are only interested in the ID.
+				var id uint64 = 0
+				idStr := request.PathParameter("id")
+				if verbose {
+					log.Printf("id %s", idStr)
 				}
+				if idStr == "" {
+					// This should never happen
+					em := fmt.Sprintf("id is not set in the request, must be an unsigned integer")
+					log.Printf("%s\n", em)
+					form.SetErrorMessageForField("ID", "Internal error - " + em)
+				}
+					
+				id, err = strconv.ParseUint(idStr, 10, 64)
+				if err != nil {
+					em := fmt.Sprintf("invalid id %s in request, must be an unsigned integer - %s", 
+						idStr, err.Error())
+					log.Printf("%s\n", em)
+					form.SetErrorMessageForField("ID", "ID must be a whole number greater than 0")
+				}
+				{{.NameWithLowerFirst}}.SetID(id)
 				
 				controller.Show(request, response, form)
 
@@ -321,22 +363,35 @@ func marshal(request *restful.Request, response *restful.Response) {
 				// "POST http://server:port/{{.PluralNameWithLowerFirst}}/1/delete" - delete the {{.PluralNameWithLowerFirst}}
 				// record with the ID given in the request.
 				
-				// Get the ID from the HTML form data .  The data only contains the
-				// ID so the resulting {{.NameWithUpperFirst}}Form may be marked 
-				// as invalid, but we are only interested in the ID.
-				form := makeValidated{{.NameWithUpperFirst}}FormFromRequest(request, &services)
-
-				if form.{{.NameWithUpperFirst}}().ID() <= 0 {
-					// The ID in the HTML form data is junk.
-					// This request is normally made from a link in a view.  The
-					// link should always be correct, so this should never happen!
-					em := fmt.Sprintf("illegal id")
-					log.Println(em)
-					controller.ErrorHandler(request, response, em)
+				{{.NameWithLowerFirst}} := services.Make{{.NameWithUpperFirst}}()
+				form := services.Make{{.NameWithUpperFirst}}Form()
+				form.Set{{.NameWithUpperFirst}}({{.NameWithLowerFirst}})
+				
+				// Get the ID from the request and create a form containing a
+				// {{.NameWithLowerFirst}} with only the ID set.  The resulting 
+				// form will be  invalid, but we are only interested in the ID.
+				var id uint64 = 0
+				idStr := request.PathParameter("id")
+				if verbose {
+					log.Printf("id %s", idStr)
 				}
+				if idStr == "" {
+					// This should never happen
+					em := fmt.Sprintf("id is not set in the request, must be an unsigned integer")
+					log.Printf("%s\n", em)
+					form.SetErrorMessageForField("ID", "Internal error - " + em)
+				}
+					
+				id, err = strconv.ParseUint(idStr, 10, 64)
+				if err != nil {
+					em := fmt.Sprintf("invalid id %s in request, must be an unsigned integer - %s", 
+						idStr, err.Error())
+					log.Printf("%s\n", em)
+					form.SetErrorMessageForField("ID", "ID must be a whole number greater than 0")
+				}
+				{{.NameWithLowerFirst}}.SetID(id)
 				
 				controller.Delete(request, response, form)
-
 			}
 
 		default:
@@ -357,7 +412,7 @@ func marshal(request *restful.Request, response *restful.Response) {
 {{range .Resources}}
 // makeValidated{{.NameWithUpperFirst}}FormFromRequest gets the {{.NameWithLowerFirst}} data from the request, creates a
 // {{.NameWithUpperFirst}} and returns it in a single item {{.NameWithLowerFirst}} form.
-func makeValidated{{.NameWithUpperFirst}}FormFromRequest(req *restful.Request, services services.Services) {{.NameWithLowerFirst}}Forms.SingleItemForm {
+func makeValidated{{.NameWithUpperFirst}}FormFromRequest(request *restful.Request, services services.Services) {{.NameWithLowerFirst}}Forms.SingleItemForm {
 
 	log.SetPrefix("makeValidated{{.NameWithUpperFirst}}FormFromRequest() ")
 
@@ -371,7 +426,7 @@ func makeValidated{{.NameWithUpperFirst}}FormFromRequest(req *restful.Request, s
 	
 	valid := true	// This will be set false on any error.
 	
-	err := req.Request.ParseForm()
+	err := request.Request.ParseForm()
 	if err != nil {
 		valid = false
 		em := fmt.Sprintf("cannot parse form - %s", err.Error())
@@ -381,9 +436,9 @@ func makeValidated{{.NameWithUpperFirst}}FormFromRequest(req *restful.Request, s
 		return {{.NameWithLowerFirst}}Form
 	}
 	
-	// In some requests the ID is set.  If so, parse and copy it.
+	// If the URI contains an ID, parse and copy it.
 	var id uint64 = 0
-	idStr := req.PathParameter("id")
+	idStr := request.PathParameter("id")
 	if idStr != "" {
 		if verbose {
 			log.Printf("id %s", idStr)
@@ -403,12 +458,12 @@ func makeValidated{{.NameWithUpperFirst}}FormFromRequest(req *restful.Request, s
 {{$resourceNameUpper := .NameWithUpperFirst}}
 {{range .Fields}}
 	{{if eq .GoType "string"}}
-		{{.NameWithLowerFirst}} := req.Request.FormValue("{{.NameWithLowerFirst}}")
+		{{.NameWithLowerFirst}} := request.Request.FormValue("{{.NameWithLowerFirst}}")
 		if verbose {
 			log.Printf("{{.NameWithLowerFirst}} %s", {{.NameWithLowerFirst}})
 		}
 	{{else}}
-		{{.NameWithLowerFirst}}Str := strings.TrimSpace(req.Request.FormValue("{{.NameWithLowerFirst}}"))
+		{{.NameWithLowerFirst}}Str := strings.TrimSpace(request.Request.FormValue("{{.NameWithLowerFirst}}"))
 		if verbose {
 			log.Printf("{{.NameWithLowerFirst}} %s", {{.NameWithLowerFirst}}Str)
 		}

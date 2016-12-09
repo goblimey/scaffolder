@@ -85,7 +85,7 @@ func (c Controller) Show(req *restful.Request, resp *restful.Response,
 	return
 }
 
-// New displays the page to create a new {{.NameWithLowerFirst}},
+// New displays the page to create a {{.NameWithLowerFirst}},
 func (c Controller) New(req *restful.Request, resp *restful.Response,
 	form {{.NameWithLowerFirst}}Forms.SingleItemForm) {
 
@@ -163,21 +163,12 @@ func (c Controller) Edit(req *restful.Request, resp *restful.Response,
 	form {{.NameWithLowerFirst}}Forms.SingleItemForm) {
 
 	log.SetPrefix("Edit() ")
-
-	err := req.Request.ParseForm()
-	if err != nil {
-		// failed to parse form
-		em := fmt.Sprintf("cannot parse form - %s", err.Error())
-		log.Printf("%s\n", em)
-		c.ErrorHandler(req, resp, em)
-		return
-	}
-	// Get the ID of the {{.NameWithLowerFirst}}
-	id := req.PathParameter("id")
+	
+	id := form.{{.NameWithUpperFirst}}().ID()
 
 	repository := c.services.{{.NameWithUpperFirst}}Repository()
 	// Get the existing data for the {{.NameWithLowerFirst}}
-	{{.NameWithLowerFirst}}, err := repository.FindByIDStr(id)
+	{{.NameWithLowerFirst}}, err := repository.FindByID(id)
 	if err != nil {
 		// No such {{.NameWithLowerFirst}}.  Display index page with error message.
 		em := err.Error()
