@@ -1,6 +1,6 @@
 {
     "name": "animals",
-    "sourceBase": "github.com/goblimey/animals",
+    "sourcebase": "github.com/goblimey/animals",
     "db": "mysql",
     "dbuser": "webuser",
     "dbpassword": "secret",

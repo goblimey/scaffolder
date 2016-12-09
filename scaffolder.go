@@ -10,8 +10,6 @@ import (
 	"text/template"
 	"unicode"
 	"unicode/utf8"
-
-	"github.com/go-jsonfile/jsonfile"
 )
 
 // The Goblimey scaffolder reads a specification file written in JSON describing
@@ -89,16 +87,15 @@ func (r Resource) String() string {
 }
 
 type Spec struct {
-	Name       string `json:"name"`
-	SourceBase string `json:"sourceBase"`
-	DB         string `json:"db"`
-	DBUser     string `json:"dbuser"`
-	DBPassword string `json:"dbpassword"`
-	DBServer   string `json:dbserver`
-	DBPort     string `json:dbport`
-	ORM        string `json:orm`
-	DBURL      string
-	// CurrentDir         string
+	Name               string `json:"name"`
+	SourceBase         string `json:"sourcebase"`
+	DB                 string `json:"db"`
+	DBUser             string `json:"dbuser"`
+	DBPassword         string `json:"dbpassword"`
+	DBServer           string `json:dbserver`
+	DBPort             string `json:dbport`
+	ORM                string `json:orm`
+	DBURL              string
 	NameWithUpperFirst string
 	NameWithLowerFirst string
 	NameAllUpper       string
@@ -111,7 +108,7 @@ func (s Spec) String() string {
 	for _, r := range s.Resources {
 		resources += r.String() + "\n"
 	}
-	return fmt.Sprintf("{name=%s sourceBase=%s db=%s dbserver=%s dbport=s dbuser=%s dbpassword=%s dburl=s %d resources={%s}}",
+	return fmt.Sprintf("{name=%s sourceBase=%s db=%s dbserver=%s dbport=%s dbuser=%s dbpassword=%s dburl=%s %d resources={%s}}",
 		s.Name, s.SourceBase, s.DB, s.DBServer, s.DBPort, s.DBUser, s.DBPassword,
 		s.DBURL, len(s.Resources), resources)
 }
@@ -160,12 +157,12 @@ func main() {
 			err.Error())
 		os.Exit(-1)
 	}
-	jsonFile.Close()
+	defer jsonFile.Close()
 
 	var spec Spec
 
-	jsonfile.ReadJSONFromFile(specFile, &spec)
-	if err != nil {
+	jsonParser := json.NewDecoder(jsonFile)
+	if err = jsonParser.Decode(&spec); err != nil {
 		log.Printf("cannot read JSON from specification file %s - %s", specFile, err.Error())
 		os.Exit(-1)
 	}
@@ -181,7 +178,7 @@ func main() {
 		os.Exit(-1)
 	}
 	if verbose {
-		log.Printf("initial specification\n%s\n", data)
+		log.Printf("formatted specification\n%s\n", data)
 	}
 
 	// If the templateDir is not specified, produce templates from the built-in
@@ -213,14 +210,6 @@ func main() {
 	spec.NameWithLowerFirst = lowerFirstRune(spec.Name)
 	//"animals" => "ANIMALS"
 	spec.NameAllUpper = strings.ToUpper(spec.Name)
-	/*
-		spec.CurrentDir, err = os.Getwd()
-		if err != nil {
-			log.Printf("internal error - cannot find the name of the current directory - %s",
-				err.Error())
-			os.Exit(-1)
-		}
-	*/
 
 	for i, _ := range spec.Resources {
 		// Set the last item flag in each field list.  For all but the last
