@@ -2,9 +2,9 @@
     "name": "animals",
     "sourceBase": "github.com/goblimey/animals",
     "db": "mysql",
-    "dblogin": "webuser:secret@tcp(localhost:3306)/animals",
     "dbuser": "webuser",
     "dbpassword": "secret",
+	"dbserver": "localhost",
     "orm": "gorp",
     "Resources": [
         {
