@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"text/template"
 	"unicode"
@@ -118,7 +119,7 @@ var templateMap map[string]*template.Template
 var verbose bool
 var overwriteMode bool
 var templateDir string
-var workspaceDir string
+var projectDir string
 
 func init() {
 	const (
@@ -130,7 +131,7 @@ func init() {
 
 	flag.BoolVar(&overwriteMode, "overwrite", false, "overwrite all files, not just the generated directory")
 	flag.StringVar(&templateDir, "templatedir", "", "the directory containing the scaffold templates (normally this is not specified and built in templates are used)")
-	flag.StringVar(&workspaceDir, "workspace", "", "the Go workspace directory")
+	flag.StringVar(&projectDir, "projectdir", ".", "the project directory")
 
 	templateMap = make(map[string]*template.Template)
 }
@@ -142,22 +143,49 @@ func main() {
 
 	// Find the scaffold spec.  By default it's "scaffold.json" but it can be
 	// specified by the first (and only) command line argument.
+	//
+	// Do this before changing directory to the project.
 
-	var specFile string
+	specFile := "scaffold.json"
 	if len(flag.Args()) >= 1 {
 		specFile = flag.Args()[0]
-	} else {
-		specFile = "scaffold.json"
+	}
+
+	if verbose {
+		log.Printf("specification file %s", specFile)
 	}
 
 	// Check that file exists and can be read
-	jsonFile, err := os.Open(specFile)
+	path, err := filepath.Abs(specFile)
+	if err != nil {
+		log.Printf("cannot find path for JSON specification file %s - %s", specFile,
+			err.Error())
+		os.Exit(-1)
+	}
+
+	if verbose {
+		log.Printf("spec file path %s", path)
+	}
+
+	jsonFile, err := os.Open(path)
 	if err != nil {
 		log.Printf("cannot open JSON specification file %s - %s", specFile,
 			err.Error())
 		os.Exit(-1)
 	}
 	defer jsonFile.Close()
+
+	// By default, the projectDir is the current directory but it can
+	// be specified on the command line.
+
+	if projectDir != "." {
+		err := os.Chdir(projectDir)
+		if err != nil {
+			log.Printf("cannot change directory to the project %s - %s",
+				err.Error(), projectDir)
+			os.Exit(-1)
+		}
+	}
 
 	var spec Spec
 
@@ -393,21 +421,6 @@ func main() {
 	}
 
 	// Build the project from the templates and the JSON spec.
-
-	// By default, the projectDir is the current directory.  If the workspace
-	// directory is specified, the project directory is specified by the
-	// sourceBase, something like {workspaceDir}/src/github.com/goblimey/animals.
-
-	projectDir := "."
-	if strings.TrimSpace(workspaceDir) != "" {
-		projectDir = workspaceDir + "/src/" + spec.SourceBase
-		err = os.Chdir(projectDir)
-		if err != nil {
-			log.Printf("cannot change directory to project directory %s - %s",
-				err.Error(), workspaceDir)
-			os.Exit(-1)
-		}
-	}
 
 	// install.sh script with permission u+rwx
 	templateName := "script.install.sh.template"
@@ -970,7 +983,13 @@ func createAndOpenFile(targetDir string, targetName string,
 	// mode.
 
 	if !overwrite {
-		dir, err := os.Open(targetDir)
+		path, err := filepath.Abs(targetDir)
+		if err != nil {
+			log.Printf("cannot find path for target directory %s - %s", targetDir,
+				err.Error())
+			os.Exit(-1)
+		}
+		dir, err := os.Open(path)
 		if err != nil {
 			log.Printf("cannot open target directory %s - %s ",
 				targetDir, err.Error())
