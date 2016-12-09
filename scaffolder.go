@@ -89,16 +89,16 @@ func (r Resource) String() string {
 }
 
 type Spec struct {
-	Name               string `json:"name"`
-	SourceBase         string `json:"sourceBase"`
-	DB                 string `json:"db"`
-	DBUser             string `json:"dbuser"`
-	DBPassword         string `json:"dbpassword"`
-	DBServer           string `json:dbserver`
-	DBPort             string `json:dbport`
-	ORM                string `json:orm`
-	DBURL              string
-	CurrentDir         string
+	Name       string `json:"name"`
+	SourceBase string `json:"sourceBase"`
+	DB         string `json:"db"`
+	DBUser     string `json:"dbuser"`
+	DBPassword string `json:"dbpassword"`
+	DBServer   string `json:dbserver`
+	DBPort     string `json:dbport`
+	ORM        string `json:orm`
+	DBURL      string
+	// CurrentDir         string
 	NameWithUpperFirst string
 	NameWithLowerFirst string
 	NameAllUpper       string
@@ -209,14 +209,18 @@ func main() {
 
 	// "animals" => "Animals"
 	spec.NameWithUpperFirst = upperFirstRune(spec.Name)
+	// Animals" => animals"
+	spec.NameWithLowerFirst = lowerFirstRune(spec.Name)
 	//"animals" => "ANIMALS"
 	spec.NameAllUpper = strings.ToUpper(spec.Name)
-	spec.CurrentDir, err = os.Getwd()
-	if err != nil {
-		log.Printf("internal error - cannot find the name of the current directory - %s",
-			err.Error())
-		os.Exit(-1)
-	}
+	/*
+		spec.CurrentDir, err = os.Getwd()
+		if err != nil {
+			log.Printf("internal error - cannot find the name of the current directory - %s",
+				err.Error())
+			os.Exit(-1)
+		}
+	*/
 
 	for i, _ := range spec.Resources {
 		// Set the last item flag in each field list.  For all but the last
