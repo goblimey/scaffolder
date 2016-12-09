@@ -133,7 +133,7 @@ func init() {
 
 	flag.BoolVar(&overwriteMode, "overwrite", false, "overwrite all files, not just the generated directory")
 	flag.StringVar(&templateDir, "templatedir", "", "the directory containing the scaffold templates (normally this is not specified and built in templates are used)")
-	flag.StringVar(&workspaceDir, "workspace", ".", "the Go workspace directory")
+	flag.StringVar(&workspaceDir, "workspace", "", "the Go workspace directory")
 
 	templateMap = make(map[string]*template.Template)
 }
@@ -161,13 +161,6 @@ func main() {
 		os.Exit(-1)
 	}
 	jsonFile.Close()
-
-	err = os.Chdir(workspaceDir)
-	if err != nil {
-		log.Printf("cannot change directory to project root directory %s - %s",
-			err.Error(), workspaceDir)
-		os.Exit(-1)
-	}
 
 	var spec Spec
 
@@ -406,12 +399,22 @@ func main() {
 		log.Printf("enhanced spec:\n%s\n", data)
 	}
 
-	// Build the project from the templates and the JSON.
+	// Build the project from the templates and the JSON spec.
 
-	// The project directory is something like
-	// src/github.com/goblimey/animals in the Go workspace.
+	// By default, the projectDir is the current directory.  If the workspace
+	// directory is specified, the project directory is specified by the
+	// sourceBase, something like {workspaceDir}/src/github.com/goblimey/animals.
 
-	projectDir := workspaceDir + "/src/" + spec.SourceBase
+	projectDir := "."
+	if strings.TrimSpace(workspaceDir) != "" {
+		projectDir = workspaceDir + "/src/" + spec.SourceBase
+		err = os.Chdir(projectDir)
+		if err != nil {
+			log.Printf("cannot change directory to project directory %s - %s",
+				err.Error(), workspaceDir)
+			os.Exit(-1)
+		}
+	}
 
 	// install.sh script with permission u+rwx
 	templateName := "script.install.sh.template"
