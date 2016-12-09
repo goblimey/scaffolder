@@ -1,0 +1,19 @@
+REM batch file to build the {{.NameAllUpper}} web application server.
+REM
+REM The script is generated the first time you run the Goblimey scaffolder.  If you
+REM need to recreate it, run the scaffolder with the -overwrite option.
+REM 
+REM To buld the application, change directory to the one containing this file and 
+REM run it, for example:
+REM
+REM    cd goprojects/src/github.com/goblimey/{{.Name}}
+REM    install.bat
+REM
+REM The script assumes that the scaffolder and the go tools are available via the
+REM PATH and that the GOPATH variable contains the name of the Go projects directory.
+
+goimports -w .
+
+gofmt -w .
+
+go install {{.SourceBase}}

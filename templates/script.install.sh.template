@@ -1,6 +1,6 @@
 #! /bin/sh
 
-# Script to build the {{.NameAllUpper}} application server.
+# Script to build the {{.NameAllUpper}} web application server.
 #
 # The script is generated the first time you run the Goblimey scaffolder.  If you
 # need to recreate it, run the scaffolder with the -overwrite option.
@@ -8,21 +8,14 @@
 # To buld the application, change directory to the one containing this file and 
 # run it, for example:
 #
-#    cd $HOME/workspaces/{{.Name}}
-#    . build.sh
+#    cd $HOME/goprojects/src/github.com/goblimey/{{.Name}}
+#    ./install.sh
 #
 # The script assumes that the scaffolder and the go tools are available via the
-# PATH.
+# PATH and that the GOPATH variable contains the name of the Go projects directory.
 
-if test -f setenv.sh
-then
-    . setenv.sh
-fi
+goimports -w .
 
-scaffolder
-
-goimports -w src/{{.SourceBase}}
-
-gofmt -w src/{{.SourceBase}}
+gofmt -w .
 
 go install {{.SourceBase}}

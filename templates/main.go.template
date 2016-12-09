@@ -6,8 +6,8 @@ package main
 // this file.  If you need to restore the original version, run the scaffolder with 
 // the -overwrite option.
 
-// The {{.NameWithLowerFirst}} controller provides the back end logic to provide
-// CRUD operations on the {{.NameWithLowerFirst}} resource.
+// The {{.NameWithLowerFirst}} program provides the back end logic to provide
+// CRUD operations on the {{.NameWithLowerFirst}} resources.
 
 // resourceRE is the regular expression to extract the resource from the URI of
 // the request to be.  For example in: "/people" and "/people/1/delete", the
@@ -61,7 +61,7 @@ func init() {
 	)
 	flag.BoolVar(&verbose, "verbose", defaultVerbose, usage)
 	flag.BoolVar(&verbose, "v", defaultVerbose, usage+" (shorthand)")
-	flag.StringVar(&homeDir, "homedir", "", "the application server's home directory (must contain the views directory)")
+	flag.StringVar(&homeDir, "homedir", ".", "the application server's home directory (must contain the views directory)")
 }
 
 func main() {
@@ -69,10 +69,8 @@ func main() {
 	// Find the home directory.  This is specified by the first command line
 	// argument.  If that's not specified, the home is assumed to be the current
 	//directory.
-	// homeDir := flag.String("homedir", ".", "the home directory (should contain the views directory)")
 
 	flag.Parse()
-	log.Printf("args %s", strings.Join(os.Args, " "))
 	if len(flag.Args()) >= 1 {
 		homeDir = flag.Args()[0]
 	}
@@ -111,38 +109,42 @@ func main() {
 
 	templateMap = utilities.CreateTemplates()
 
-	// Set up the restful web service.  Send all requests to marshall().
+	// Set up the restful web service.  Send all requests to marshal().
 
-	log.Println("setting up routes")
+	if verbose {
+		log.Println("setting up routes")
+	}
 	ws := new(restful.WebService)
 	http.Handle("/stylesheets/", http.StripPrefix("/stylesheets/", http.FileServer(http.Dir("views/stylesheets"))))
 	http.Handle("/html/", http.StripPrefix("/html/", http.FileServer(http.Dir("views/html"))))
 	// Handlers for static HTML pages.
 
-	ws.Route(ws.GET("/").To(marshall))
-	ws.Route(ws.GET("/error.html").To(marshall))
+	ws.Route(ws.GET("/").To(marshal))
+	ws.Route(ws.GET("/error.html").To(marshal))
 {{range .Resources}}
-	// Tie all expected requests to the marshall.
-	ws.Route(ws.GET("/{{.PluralNameWithLowerFirst}}").To(marshall))
-	ws.Route(ws.GET("/{{.PluralNameWithLowerFirst}}/{id}/edit").To(marshall))
-	ws.Route(ws.GET("/{{.PluralNameWithLowerFirst}}/{id}").To(marshall))
-	ws.Route(ws.GET("/{{.PluralNameWithLowerFirst}}/create").To(marshall))
-	ws.Route(ws.POST("/{{.PluralNameWithLowerFirst}}").Consumes("application/x-www-form-urlencoded").To(marshall))
-	ws.Route(ws.POST("/{{.PluralNameWithLowerFirst}}/{id}").Consumes("application/x-www-form-urlencoded").To(marshall))
-	ws.Route(ws.POST("/{{.PluralNameWithLowerFirst}}/{id}/delete").Consumes("application/x-www-form-urlencoded").To(marshall))
+	// Tie all expected requests to the marshal.
+	ws.Route(ws.GET("/{{.PluralNameWithLowerFirst}}").To(marshal))
+	ws.Route(ws.GET("/{{.PluralNameWithLowerFirst}}/{id}/edit").To(marshal))
+	ws.Route(ws.GET("/{{.PluralNameWithLowerFirst}}/{id}").To(marshal))
+	ws.Route(ws.GET("/{{.PluralNameWithLowerFirst}}/create").To(marshal))
+	ws.Route(ws.POST("/{{.PluralNameWithLowerFirst}}").Consumes("application/x-www-form-urlencoded").To(marshal))
+	ws.Route(ws.POST("/{{.PluralNameWithLowerFirst}}/{id}").Consumes("application/x-www-form-urlencoded").To(marshal))
+	ws.Route(ws.POST("/{{.PluralNameWithLowerFirst}}/{id}/delete").Consumes("application/x-www-form-urlencoded").To(marshal))
 {{end}}
 	restful.Add(ws)
 
-	log.Println("starting the listener")
+	if verbose {
+		log.Println("starting the listener")
+	}	
 	err = http.ListenAndServe(":4000", nil)
 	log.Printf("baling out - %s" + err.Error())
 }
 
-// marshall passes the request and response to the appropriate method of the
+// marshal passes the request and response to the appropriate method of the
 // appropriate  controller.
-func marshall(request *restful.Request, response *restful.Response) {
+func marshal(request *restful.Request, response *restful.Response) {
 
-	log.SetPrefix("main.marshall() ")
+	log.SetPrefix("main.marshal() ")
 
 	defer catchPanic()
 	
@@ -185,13 +187,13 @@ func marshall(request *restful.Request, response *restful.Response) {
 	}
 	
 	// The home page "/" or "/index.html" is dealt with using the special resource 
-	// "home".
+	// "html".
 	
 	if uri == "/" || uri == "/index.html" {
 		if verbose {
 			log.Println("home page")
 		}
-		page := services.Template("home", "Index")
+		page := services.Template("html", "Index")
 		if page == nil {
 			log.Printf("no home Index page")
 			utilities.Dead(response)
@@ -362,9 +364,9 @@ func makeValidated{{.NameWithUpperFirst}}FormFromRequest(req *restful.Request, s
 	{{.NameWithLowerFirst}} := services.Make{{.NameWithUpperFirst}}()
 	{{.NameWithLowerFirst}}Form := services.MakeInitialised{{.NameWithUpperFirst}}Form({{.NameWithLowerFirst}})
 	
-	// The Validate method validates the {{.NameWithUpperFirst}}Form. For data
-	// fields in the request that are destined for any object except a string
-	// could also be invalid and we also have to check for that before we set
+	// The Validate method validates the {{.NameWithUpperFirst}}Form. Fields
+	//in the request that are destined for any object except a string could
+	// also be invalid and we also have to check for that before we set
 	// a field in the {{.NameWithUpperFirst}}Form.
 	
 	valid := true	// This will be set false on any error.
@@ -383,39 +385,47 @@ func makeValidated{{.NameWithUpperFirst}}FormFromRequest(req *restful.Request, s
 	var id uint64 = 0
 	idStr := req.PathParameter("id")
 	if idStr != "" {
+		if verbose {
+			log.Printf("id %s", idStr)
+		}
 		id, err = strconv.ParseUint(idStr, 10, 64)
 		if err != nil {
 			valid = false
-			em := fmt.Sprintf("invalid id %v in request - should be numeric", idStr)
+			em := fmt.Sprintf("invalid id %s in request, must be an unsigned integer - %s", 
+				idStr, err.Error())
 			log.Printf("%s\n", em)
 			{{.NameWithLowerFirst}}Form.SetErrorMessageForField("ID", "ID must be a whole number greater than 0")
 		}
 		{{.NameWithLowerFirst}}.SetID(id)
 	}
 
-	// Getting the value of a form field involves using the public Request
-	// attribute of the restful request, and that operation cannot be
-	// represented by an interface. This is why the request and response
-	// are not represented as retro-fitted interfaces.
 {{$resourceNameLower := .NameWithLowerFirst}}
 {{$resourceNameUpper := .NameWithUpperFirst}}
 {{range .Fields}}
 	{{if eq .GoType "string"}}
 		{{.NameWithLowerFirst}} := req.Request.FormValue("{{.NameWithLowerFirst}}")
+		if verbose {
+			log.Printf("{{.NameWithLowerFirst}} %s", {{.NameWithLowerFirst}})
+		}
 	{{else}}
 		{{.NameWithLowerFirst}}Str := strings.TrimSpace(req.Request.FormValue("{{.NameWithLowerFirst}}"))
+		if verbose {
+			log.Printf("{{.NameWithLowerFirst}} %s", {{.NameWithLowerFirst}}Str)
+		}
 		{{if or (eq .GoType "int64") (eq .GoType "uint64")}}
 			{{.NameWithLowerFirst}}, err := strconv.ParseInt({{.NameWithLowerFirst}}Str, 10, 64)
 			if err != nil {
 				valid = false
-				log.Println(fmt.Sprintf("HTML for field {{.NameWithLowerFirst}} %s is not an integer", {{.NameWithLowerFirst}}Str))
+				log.Println(fmt.Sprintf("HTTP form input for field {{.NameWithLowerFirst}} %s is not an integer - %s", 
+				    {{.NameWithLowerFirst}}Str, err.Error()))
 				{{$resourceNameLower}}Form.SetErrorMessageForField("{{.NameWithUpperFirst}}", "must be a whole number")
 			}
 		{{else if eq .GoType "float64"}}
 			{{.NameWithLowerFirst}}, err := strconv.ParseFloat({{.NameWithLowerFirst}}Str, 64)
 			if err != nil {
 				valid = false
-				log.Println(fmt.Sprintf("HTML for field {{.NameWithLowerFirst}} %s is not a float value", {{.NameWithLowerFirst}}Str))
+				log.Println(fmt.Sprintf("HTTP form input for field {{.NameWithLowerFirst}} %s is not a float value - %s", 
+					{{.NameWithLowerFirst}}Str, err.Error()))
 				{{$resourceNameLower}}Form.SetErrorMessageForField("{{.NameWithUpperFirst}}", "must be a number")
 			}
 		{{else if eq .GoType "bool"}}
@@ -424,7 +434,8 @@ func makeValidated{{.NameWithUpperFirst}}FormFromRequest(req *restful.Request, s
 				{{.NameWithLowerFirst}}, err = strconv.ParseBool({{.NameWithLowerFirst}}Str)
 				if err != nil {
 					valid = false
-					log.Println(fmt.Sprintf("HTML for field {{.NameWithLowerFirst}} %s is not a boolean", {{.NameWithLowerFirst}}Str))
+					log.Println(fmt.Sprintf("HTTP form input for field {{.NameWithLowerFirst}} %s is not a bool - %s", 
+					{{.NameWithLowerFirst}}Str, err.Error()))
 					{{$resourceNameLower}}Form.SetErrorMessageForField("{{.NameWithUpperFirst}}", "must be true or false")
 				}
 			}

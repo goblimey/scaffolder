@@ -1,0 +1,100 @@
+REM Batch file to test the components of the {{.NameAllUpper}} web application server.
+REM
+REM This script creates mock objects and runs the tests.  It's generated the first 
+REM time you run the Goblimey scaffolder.  If you need to recreate it, run the 
+REM scaffolder with the -overwrite option.
+REM
+REM With no argument, run all tests.  With the argument "unit" run just the unit
+REM tests.  With argument "int" run just the integration tests.  This is done by
+REM chhoosing the right names for the test methods - TestUnitIndexWithOnePerson()
+REM is assumed to be a unit test and TestIntIndexWithOnePerson() is assumed to
+REM be an integration test.
+REM
+REM The script must be run from the project root, which is where it is stored.  It
+REM has the directories containing test code hard-wired.  As you add your own modules, 
+REM you need to keep it up to date. 
+REM
+REM The script assumes that the go tools are available via the PATH and that the
+REM GOPATH variable contains the name of the Go projects directory.
+
+
+SET testcmd="go test -test.v"
+
+if [%1]==[] goto build
+
+if [%1]==["unit"] goto unit
+
+if [%1]==["int"] goto integration
+
+@echo "the first argument must be unit or int
+exit \B 1
+
+:unit
+SET testcmd="%testcmd% -run=^TestUnit"
+gotobuild
+
+:integration
+SET testcmd="%testcmd% -run=^TestInt"
+goto build
+
+:build
+
+SET startDir=%~dp0
+
+REM Build mocks
+if not exists mkdir %startDir%\src
+if not exists mkdir %startDir%\src\{{.SourceBase}}
+if not exists mkdir %startDir%\src\{{.SourceBase}}\generated
+if not exists mkdir %startDir%\src\{{.SourceBase}}\generated\crud
+if not exists mkdir %startDir%\src\{{.SourceBase}}\generated\crud\mocks
+if not exists mkdir %startDir%\src\{{.SourceBase}}\generated\crud\mocks\pegomock
+
+SET dir="{{.SourceBase}}\generated\crud\mocks\pegomock""
+@echo ${dir}
+cd %startDir%\src\$dir
+pegomock generate --package pegomock --output=mock_template.go "{{.SourceBase}}\generated\crud\retrofit\template" Template
+pegomock generate --package pegomock --output=mock_services.go "{{.SourceBase}}\generated\crud\services Services"
+pegomock generate --package pegomock --output=mock_response_writer.go "net\http ResponseWriter"
+{{range .Resources}}
+    if not exists mkdir {{.NameWithLowerFirst}}
+    pegomock generate --package {{.NameWithLowerFirst}} --output="{{.NameWithLowerFirst}}"\mock_repository.go "{{.SourceBase}}\generated\crud\repositories\{{.NameWithLowerFirst}}" Repository
+{{end}}
+
+REM Build
+
+go build "github.com\goblimey\{{.NameWithLowerFirst}}"
+
+REM Test
+
+{{range .Resources}}
+dir="{{.SourceBase}}\generated\crud\models\{{.NameWithLowerFirst}}"
+@echo ${dir}
+cd %startDir%\src\$dir
+${testcmd}
+
+dir="{{.SourceBase}}\generated\crud\models\{{.NameWithLowerFirst}}\gorp"
+@echo ${dir}
+cd %startDir%\src\$dir
+%testcmd%
+
+dir="{{.SourceBase}}\generated\crud\repositories\{{.NameWithLowerFirst}}\gorpmysql"
+@echo ${dir}
+cd %startDir%\src\$dir
+%testcmd%
+
+dir="{{.SourceBase}}\generated\crud\forms\{{.NameWithLowerFirst}}"
+@echo ${dir}
+cd %startDir%\src\$dir
+%testcmd%
+
+dir="{{.SourceBase}}\generated\crud\forms\{{.NameWithLowerFirst}}"
+@echo ${dir}
+cd %startDir%\src\$dir
+%testcmd%
+
+dir="{{.SourceBase}}\generated\crud\controllers\{{.NameWithLowerFirst}}"
+@echo ${dir}
+cd %startDir%\src\$dir
+%testcmd%
+
+{{end}}
