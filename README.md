@@ -152,6 +152,11 @@ PATH tells the system (Windows, Linux or whatever) where to find
 executable programs.
 GOPATH tells the Go tools where to find Go projects.
 
+Creating Your Project
+================
+
+Go programmers can skip this section too.
+
 A Go project is really just a directory containing some Go source code.
 However, as the How to Write Go Code document explains,
 you should structure your project as if you are going to store it in a repository.
@@ -216,7 +221,7 @@ at which point they become public and other people can get at them.
 Installing the Scaffolder
 =================
 
-Once you've installed the Go tools and created your project,
+Once you've installed the Go tools and created your project directory,
 you can install the scaffolder.
 It needs various bits and pieces of ready-made Go software, so download those first.
 
@@ -263,13 +268,15 @@ The JSON Specification
 The scaffolder is driven by a text file in JavaScript Object Notation (JSON) format that specifies a database and a set of tables.  JSON is described [here](http://www.json.org).
 
 When you are writing JSON, it's very easy to make a simple mistake such as missing out a comma.
-The scaffolder uses a ready-built JSON processor and the error messages it produces are not very helpful.
+The scaffolder uses an off-the-shelf JSON processor and the error messages it produces are not very helpful.
 You will save yourself a lot of pain if you prepare the file 
 using an editor that understands JSON and warns you about obvious errors.
-Most Integrated development Environments (liteIDE, Eclipse, IntelliJ, VSCode etc) have editors that will do this.  Text editors such as Windows Notepad++ and Vim will do the same.
+Most Integrated development Environments (liteIDE, Eclipse, IntelliJ, VSCode etc) have editors that will do this.  Text editors such as Windows Notepad++ will do the same.
 
-This specification defines a MySQL database called "animals" containing tables "cats" and "mice":
+The scaffolder includes an example specification file so you can use that for a quick experiment.
+Copy goprojects/scaffolder/examples/animals.scaffold.json into your project directory and rename it scaffold.json.
 
+That specification defines a MySQL database called "animals" containing tables "cats" and "mice":
 
     {
         "name": "animals",
@@ -278,7 +285,7 @@ This specification defines a MySQL database called "animals" containing tables "
         "dbpassword": "secret",
         "dbserver": "localhost",
         "orm": "gorp",
-        "sourceBase": "github.com/alunsmithie/animals",
+        "sourcebase": "github.com/alunsmithie/animals",
         "Resources": [
             {
                 "name": "cat",
@@ -332,24 +339,25 @@ The Resources section is a more complicated list, containing a sub-hierarchy of 
 
 As far as the scaffolder is concerned, each resource defines a database table, a model with an associated repository, a controller and a set of views.
 
-The first few lines of the JSON spec define the database.
-In this example it's the one we created earlier, a MySQL database called "animals" accessed using the user name "webuser" and the password "secret".
+In the example, the first few lines of the JSON define the database.  It's the one we created earlier, a MySQL database called "animals" accessed using the user name "webuser" and the password "secret".
 "localhost" means that the MySQL server is running on this computer and listening on the default port. (You can specify the port  like so: "dbport": "1234".)
 
 The ORM pair says which ORM to use.  At present
 the only one supported is [GORP](https://github.com/coopernurse/gorp) version 1.
 I plan to add support for other ORMs in the future.
 
-The sourceBase says where the generated source code should be stored within the project. This should follow the Go package layout conventions. 
-In this example the project will stored in the github repository http://github.com/alunsmithie/animals, so the sourceBase value is "github.com/alunsmithie/animals".  Given that, the scaffolder creates material in src/github.com/alunsmithie/animals within the go workspace directory.
+The sourcebase says where the generated source code should be stored within the project. This should follow the Go package layout conventions. 
+In this example the project will stored in the github repository http://github.com/alunsmithie/animals, so the sourcebase value is "github.com/alunsmithie/animals".  Given that, the scaffolder creates material in src/github.com/alunsmithie/animals within the go workspace directory.
 
 Next comes the Resources section, which is a JSON list.
 Each entry describes a resource with an associated database table,
-This example describes the "cat" resource handling the t"cats" table and the "mouse" resource handling the "mice" table.
+This example describes the "cat" resource handling the "cats" table and the "mouse" resource handling the "mice" table.
 
 Traditionally, database tables are named using the plural of the data that they contain.
-If the plural is just the singular with an "s" added, you don't need to specify it.
-For the "mouse" resource, the plural is "mice" so you have to specify that.
+If that's just the singular with an "s" added, you don't need to specify it.
+The plural of "mouse" is "mice" so you the spec has to define that.
+
+    "name": "mouse", "plural": "mice",
 
 Each resource section defines a list of fields.  The cat resource has fields "name" and "breed" which contain strings of text,
 "age" containing an integer (a whole number)
@@ -357,6 +365,7 @@ Each resource section defines a list of fields.  The cat resource has fields "na
 and "chipped" containing a boolean value (true or false)
 recording whether or not the cat has been microchipped.
 All fields but the last are mandatory.
+The mouse resource has just two fields.
 
 The scaffolder generates a set of unit and integration test programs to check that the generated source code works properly.
 A unit test takes a module of the source code and runs it in isolation, supplying it with test values and checking that the module produces the expected result.  An integration tests is similar, but tests that a set of modules work together properly.
@@ -457,7 +466,7 @@ To add some mice, use the link to the home page and then the "Manage mice" link.
 To stop the server, type ctrl/c in the command window.  (Hold down the ctrl key and type a single "c", you don't need to press the enter key.)
 
 If you edit the JSON and run the scaffolder again it will produce a new version of the server.
-HOWEVER it only creates database tables if they don't already exist.  If you add extra fields, wave goodbye to any data that you have already created and use the mysql client to drop the tables before you start the server.  It will then create new ones.  (Alternatively, create a new project that uses a different database.)
+HOWEVER it only creates database tables if they don't already exist.  If you add extra fields, wave goodbye to any data that you have already created and use the mysql client to drop the tables before you start the server.  It will then create new ones.  Alternatively, create a new project that uses a different database.
 
 To specify the JSON file:
 
@@ -473,13 +482,13 @@ Run the scaffolder program like so to see all of the options:
     Usage of scaffolder:
       -overwrite
           overwrite all files, not just the generated directory
+     -projectdir string
+          the project directory (default ".")
      -templatedir string
           the directory containing the scaffold templates (normally this is not specified and built in templates are used)
       -v enable verbose logging (shorthand)
       -verbose
           enable verbose logging
-      -workspace string
-          the Go workspace directory (default ".")
 
 The scaffolder creates 
 
@@ -491,9 +500,16 @@ The scaffolder creates
 * generated - the source code of the models, views, controllers, repositories and support software
 * views - the templates used to create the html views.
 
-Anything in a directory called "generated" is likely to be trashed if you run the scaffolder over this project again.
+It's assumed that you may want to tweak things like the scripts, the main program, the home page  and so on.  If you run the scaffolder over this project again, by default only the stuff in the "generated" directories is overwritten.  
 
-It's assumed that you may want to tweak things like the scripts, the main program, the home page  and so on, so by default only the stuff in the "generated" directories is overwritten.  If you run the scaffolder with the overwrite option, it replaces everything.
+If you run the scaffolder with the overwrite option, it replaces everything.
+
+The project includes tests which are run by the test script test.sh (or test.bat on Windows).
+This can run the unit tests, the integration tests or (by default) both.  NOTE that some integration tests use the real database.  It's safe to run them now, but if you run them after you've been playing with the web server, any data that you have set up will be trashed.
+
+    $ ./test.sh unit
+
+runs just the unit tests, and that's always safe.
 
 Once you've created your project, take a snapshot of progress by committing the files to your local repository:
 
@@ -505,31 +521,24 @@ and so on, followed by
 
    git commit -m "initial version"
 
-That records the files in their current state, but only in the local repository.  To get them onto the Github, push the current state of the repository:
+That records the files in their current state, but only in the local repository. 
+
+Actually, since all of the other files are created from the scaffold.json, that's really the only one you need to commit.  If you tweak any of the other files, you should add and commit them too.  You certainly shouldn't commit anything in directory called "generated", because that's overwritten every time you rerun the scaffolder.
+
+
+
+If one of the files that you have committed to the repository gets wrecked, you can restore it to the last commit:
+
+    git checkout views/html/index.html
+
+If you are not planning to publish your project, keeping the local repository up to date may be enough. To update the public version on the Github, push the current state of the repository:
 
     git push
 
-If you haven't configured git with your Github user name and password, it will ask you to supply them every time you do this.
-
-Actually, since all of the other files are created from the scaffold.json, that's really the only one you need to commit.  If you tweak any of the other files, you should add and commit them too.  You certainly shouldn't commit anything in directory called "generated", because the file will be overwritten every time you rerun the scaffolder, and you will have to commit again.
-
-And never forget that nothing gets onto the public Github until you do a "git push".
-
-Whenever you change a file, add it and commit again with a suitable comment, for example, if you edited the JSON spec to add a field "lastvaccinated" to the cat table:
-
-    git add scaffold.json
-    git commit -m "added extra field lastvaccinated"
-    git push 
-    
-The generated code includes tests which are run by the test script test.sh (or test.bat on Windows).
-This can run unit test, integration or (by default) both.  NOTE that some integration tests use the real database.  If you run them, any data that you have set up with the web server will be trashed.
-
-    $ ./test.sh unit
-
-runs just the unit tests, and that's safe.
+If you haven't configured git with your Github user name and password, it will ask you to supply them every time you push your changes.
 
 
-General Principles of the Design
+Principles of the Design
 =====================================
 
 Given a description of a database, the scaffolder writes a Go program that creates the database
