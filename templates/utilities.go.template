@@ -24,22 +24,22 @@ func CreateTemplates() *map[string]map[string]retrofitTemplate.Template {
 	templateMap["{{.NameWithLowerFirst}}"] = make(map[string]retrofitTemplate.Template)
 
 	templateMap["{{.NameWithLowerFirst}}"]["Index"] = template.Must(template.ParseFiles(
-		"views/generated/crud/templates/_base.ghtml",
+		"views/_base.ghtml",
 		"views/generated/crud/templates/{{.NameWithLowerFirst}}/index.ghtml",
 	))
 
 	templateMap["{{.NameWithLowerFirst}}"]["Create"] = template.Must(template.ParseFiles(
-		"views/generated/crud/templates/_base.ghtml",
+		"views/_base.ghtml",
 		"views/generated/crud/templates/{{.NameWithLowerFirst}}/create.ghtml",
 	))
 
 	templateMap["{{.NameWithLowerFirst}}"]["Edit"] = template.Must(template.ParseFiles(
-		"views/generated/crud/templates/_base.ghtml",
+		"views/_base.ghtml",
 		"views/generated/crud/templates/{{.NameWithLowerFirst}}/edit.ghtml",
 	))
 	
 	templateMap["{{.NameWithLowerFirst}}"]["Show"] = template.Must(template.ParseFiles(
-		"views/generated/crud/templates/_base.ghtml",
+		"views/_base.ghtml",
 		"views/generated/crud/templates/{{.NameWithLowerFirst}}/show.ghtml",
 	))
 	

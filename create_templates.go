@@ -3114,6 +3114,7 @@ templateName = "script.install.bat.template"
 			log.Printf("creating template %s from builtin template", templateName)
 		}
 		templateText := `
+@echo off
 REM batch file to build the {{.NameAllUpper}} web application server.
 REM
 REM The script is generated the first time you run the Goblimey scaffolder.  If you
@@ -3188,6 +3189,7 @@ templateName = "script.test.bat.template"
 			log.Printf("creating template %s from builtin template", templateName)
 		}
 		templateText := `
+@echo off
 REM Batch file to test the components of the {{.NameAllUpper}} web application server.
 REM
 REM This script creates mock objects and runs the tests.  It's generated the first 
@@ -3713,22 +3715,22 @@ func CreateTemplates() *map[string]map[string]retrofitTemplate.Template {
 	templateMap["{{.NameWithLowerFirst}}"] = make(map[string]retrofitTemplate.Template)
 
 	templateMap["{{.NameWithLowerFirst}}"]["Index"] = template.Must(template.ParseFiles(
-		"views/generated/crud/templates/_base.ghtml",
+		"views/_base.ghtml",
 		"views/generated/crud/templates/{{.NameWithLowerFirst}}/index.ghtml",
 	))
 
 	templateMap["{{.NameWithLowerFirst}}"]["Create"] = template.Must(template.ParseFiles(
-		"views/generated/crud/templates/_base.ghtml",
+		"views/_base.ghtml",
 		"views/generated/crud/templates/{{.NameWithLowerFirst}}/create.ghtml",
 	))
 
 	templateMap["{{.NameWithLowerFirst}}"]["Edit"] = template.Must(template.ParseFiles(
-		"views/generated/crud/templates/_base.ghtml",
+		"views/_base.ghtml",
 		"views/generated/crud/templates/{{.NameWithLowerFirst}}/edit.ghtml",
 	))
 	
 	templateMap["{{.NameWithLowerFirst}}"]["Show"] = template.Must(template.ParseFiles(
-		"views/generated/crud/templates/_base.ghtml",
+		"views/_base.ghtml",
 		"views/generated/crud/templates/{{.NameWithLowerFirst}}/show.ghtml",
 	))
 	

@@ -515,15 +515,14 @@ func main() {
 	createFileFromTemplateAndSpec(htmlDir, targetName, templateName, spec,
 		overwriteMode)
 
-	// These files are always overwritten.
-
-	// views/generated/crud/templates/_base.ghtml - the prototype for all generated
-	// pages.
-	generatedDir := projectDir + "/views/generated/crud/templates"
+	// views/_base.ghtml - the prototype for all generated pages
+	generatedDir := projectDir + "/views"
 	targetName = "_base.ghtml"
 	templateName = "view.base.ghtml.template"
 	createFileFromTemplateAndSpec(generatedDir, targetName, templateName, spec,
-		true)
+		overwriteMode)
+
+	// These files are always overwritten.
 
 	// Generate the sql scripts.
 	sqlDir := projectDir + "/generated/sql"

@@ -1,3 +1,4 @@
+@echo off
 REM batch file to build the {{.NameAllUpper}} web application server.
 REM
 REM The script is generated the first time you run the Goblimey scaffolder.  If you
