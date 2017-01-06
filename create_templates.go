@@ -1996,7 +1996,7 @@ func makeValidated{{.NameWithUpperFirst}}FormFromRequest(request *restful.Reques
 {{$resourceNameUpper := .NameWithUpperFirst}}
 {{range .Fields}}
 	{{if eq .GoType "string"}}
-		{{.NameWithLowerFirst}} := request.FormValue("{{.NameWithLowerFirst}}")
+		{{.NameWithLowerFirst}} := request.Request.FormValue("{{.NameWithLowerFirst}}")
 		if verbose {
 			log.Printf("{{.NameWithLowerFirst}} %s", {{.NameWithLowerFirst}})
 		}
@@ -3845,7 +3845,7 @@ scaffolder again with the -overwrite option.
         <link href='/stylesheets/scaffold.css' rel='stylesheet'/>
     </head>
     <body>
-    	 <h2>{{.Name}}</h2>
+    	 <h2>{{.NameWithUpperFirst}}</h2>
     	 <h3>{{"{{"}}template "PageTitle" .}}</h3>
     		<p><font color='red'><b>{{"{{"}}.ErrorMessage{{"}}"}}</b></font></p>
 			<p><font color='green'><b>{{"{{"}}.Notice{{"}}"}}</b></font></p>

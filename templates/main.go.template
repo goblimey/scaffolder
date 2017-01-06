@@ -458,7 +458,7 @@ func makeValidated{{.NameWithUpperFirst}}FormFromRequest(request *restful.Reques
 {{$resourceNameUpper := .NameWithUpperFirst}}
 {{range .Fields}}
 	{{if eq .GoType "string"}}
-		{{.NameWithLowerFirst}} := request.FormValue("{{.NameWithLowerFirst}}")
+		{{.NameWithLowerFirst}} := request.Request.FormValue("{{.NameWithLowerFirst}}")
 		if verbose {
 			log.Printf("{{.NameWithLowerFirst}} %s", {{.NameWithLowerFirst}})
 		}
