@@ -1093,7 +1093,6 @@ func MakeSingleItemForm() SingleItemForm {
 func MakeInitialisedSingleItemForm({{.NameWithLowerFirst}} {{.NameWithLowerFirst}}.{{.NameWithUpperFirst}}) SingleItemForm {
 	form := MakeSingleItemForm()
 	form.Set{{.NameWithUpperFirst}}({{.NameWithLowerFirst}})
-	form.SetValid(form.Validate())
 	return form
 }
 
