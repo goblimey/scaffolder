@@ -1997,7 +1997,7 @@ func makeValidated{{.NameWithUpperFirst}}FormFromRequest(request *restful.Reques
 {{$resourceNameUpper := .NameWithUpperFirst}}
 {{range .Fields}}
 	{{if eq .GoType "string"}}
-		{{.NameWithLowerFirst}} := request.Request.FormValue("{{.NameWithLowerFirst}}")
+		{{.NameWithLowerFirst}} := request.FormValue("{{.NameWithLowerFirst}}")
 		if verbose {
 			log.Printf("{{.NameWithLowerFirst}} %s", {{.NameWithLowerFirst}})
 		}
@@ -2006,13 +2006,21 @@ func makeValidated{{.NameWithUpperFirst}}FormFromRequest(request *restful.Reques
 		if verbose {
 			log.Printf("{{.NameWithLowerFirst}} %s", {{.NameWithLowerFirst}}Str)
 		}
-		{{if or (eq .GoType "int64") (eq .GoType "uint64")}}
+		{{if eq .GoType "int64"}}
 			{{.NameWithLowerFirst}}, err := strconv.ParseInt({{.NameWithLowerFirst}}Str, 10, 64)
 			if err != nil {
 				valid = false
 				log.Println(fmt.Sprintf("HTTP form input for field {{.NameWithLowerFirst}} %s is not an integer - %s", 
 				    {{.NameWithLowerFirst}}Str, err.Error()))
 				{{$resourceNameLower}}Form.SetErrorMessageForField("{{.NameWithUpperFirst}}", "must be a whole number")
+			}
+		{{else if eq .GoType "uint64"}}
+			{{.NameWithLowerFirst}}, err := strconv.ParseUint({{.NameWithLowerFirst}}Str, 10, 64)
+			if err != nil {
+				valid = false
+				log.Println(fmt.Sprintf("HTTP form input for field {{.NameWithLowerFirst}} %s is not an unsigned integer - %s", 
+				    {{.NameWithLowerFirst}}Str, err.Error()))
+				{{$resourceNameLower}}Form.SetErrorMessageForField("{{.NameWithUpperFirst}}", "must be a whole number >= 0")
 			}
 		{{else if eq .GoType "float64"}}
 			{{.NameWithLowerFirst}}, err := strconv.ParseFloat({{.NameWithLowerFirst}}Str, 64)
