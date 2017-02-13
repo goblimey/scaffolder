@@ -2471,9 +2471,16 @@ func (gmpd GorpMysqlRepository) FindByID(id uint64) ({{.NameWithLowerFirst}}.{{.
 	}
 	{{range .Fields}}
 		{{if eq .Type "string" }}
-			if len(strings.TrimSpace({{$resourceNameLower}}.{{.NameWithUpperFirst}}())) < 1 {
-				return nil, errors.New("invalid {{$resourceNameLower}} - {{.NameWithLowerFirst}} field must be set")
-			}
+			{{$resourceNameLower}}.Set{{.NameWithUpperFirst}}(strings.TrimSpace({{$resourceNameLower}}.{{.NameWithUpperFirst}}()))
+		{{end}}
+		{{if .Mandatory}}
+			{{if eq .Type "string" }}
+				if len({{$resourceNameLower}}.{{.NameWithUpperFirst}}()) == 0 {
+					em := "{{.NameWithUpperFirst}} must be set"
+					log.Println(em)
+					return nil, errors.New(em)
+				}
+			{{end}}
 		{{end}}
 	{{end}}
 	return &{{.NameWithLowerFirst}}, nil
