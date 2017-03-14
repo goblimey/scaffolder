@@ -26,7 +26,7 @@ a very useful aid to learning Go.
 That means that it may be used by people who are new to Go and
 possibly new to programming.
 This document assumes a fair amount of specialist knowledge.
-[These notes](http://goblimey.com/scaffolder/).
+[These notes](http://www.goblimey.com/scaffolder/).
 describes the scaffolder in at a gentler pace and 
 covers basic issues such as installing Go and MySQL.
 
