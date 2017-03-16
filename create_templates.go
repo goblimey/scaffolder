@@ -3343,6 +3343,11 @@ templateName = "script.test.sh.template"
 # GOPATH variable contains the name of the Go projects directory.
 
 
+# This should be set to your project directory
+homeDir={{.CurrentDir}}
+
+cd ${homeDir}
+
 testcmd='go test -test.v'
 if test ! -z $1
 then
@@ -3358,13 +3363,11 @@ then
 	esac
 fi
 
-startDir=%%GRAVE%%pwd%%GRAVE%%
-
 # Build mocks
-mkdir -p ${startDir}/src/{{.SourceBase}}/generated/crud/mocks/pegomock
-dir='{{.SourceBase}}/generated/crud/mocks/pegomock'
+mkdir -p ${homeDir}/generated/crud/mocks/pegomock
+dir='generated/crud/mocks/pegomock'
 echo ${dir}
-cd ${startDir}/src/$dir
+cd ${homeDir}/$dir
 pegomock generate --package pegomock --output=mock_template.go {{.SourceBase}}/generated/crud/retrofit/template Template
 pegomock generate --package pegomock --output=mock_services.go {{.SourceBase}}/generated/crud/services Services
 pegomock generate --package pegomock --output=mock_response_writer.go net/http ResponseWriter
@@ -3375,39 +3378,39 @@ pegomock generate --package pegomock --output=mock_response_writer.go net/http R
 
 # Build
 
-go build github.com/goblimey/{{.NameWithLowerFirst}}
+go build {{.SourceBase}}
 
 # Test
 
 {{range .Resources}}
-dir='{{.SourceBase}}/generated/crud/models/{{.NameWithLowerFirst}}'
+dir='generated/crud/models/{{.NameWithLowerFirst}}'
 echo ${dir}
-cd ${startDir}/src/$dir
+cd ${homeDir}/$dir
 ${testcmd}
 
-dir='{{.SourceBase}}/generated/crud/models/{{.NameWithLowerFirst}}/gorp'
+dir='generated/crud/models/{{.NameWithLowerFirst}}/gorp'
 echo ${dir}
-cd ${startDir}/src/$dir
+cd ${homeDir}/$dir
 ${testcmd}
 
-dir='{{.SourceBase}}/generated/crud/repositories/{{.NameWithLowerFirst}}/gorpmysql'
+dir='generated/crud/repositories/{{.NameWithLowerFirst}}/gorpmysql'
 echo ${dir}
-cd ${startDir}/src/$dir
+cd ${homeDir}/$dir
 ${testcmd}
 
-dir='{{.SourceBase}}/generated/crud/forms/{{.NameWithLowerFirst}}'
+dir='generated/crud/forms/{{.NameWithLowerFirst}}'
 echo ${dir}
-cd ${startDir}/src/$dir
+cd ${homeDir}/$dir
 ${testcmd}
 
-dir='{{.SourceBase}}/generated/crud/forms/{{.NameWithLowerFirst}}'
+dir='generated/crud/forms/{{.NameWithLowerFirst}}'
 echo ${dir}
-cd ${startDir}/src/$dir
+cd ${homeDir}/src/$dir
 ${testcmd}
 
-dir='{{.SourceBase}}/generated/crud/controllers/{{.NameWithLowerFirst}}'
+dir='generated/crud/controllers/{{.NameWithLowerFirst}}'
 echo ${dir}
-cd ${startDir}/src/$dir
+cd ${homeDir}/$dir
 ${testcmd}
 
 {{end}}

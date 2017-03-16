@@ -11,23 +11,21 @@ The idea of the scaffolder is taken from the Ruby-on-Rails scaffold generator.
 
 The scaffolder has all sorts of uses, the most obvious being a prototyping tool
 for designing database tables.
-Producing the right design for the database that sits behind a web site usually takes several attempts.
-The scaffolder gives you a quick and easy way to experiment with different versions.
-Once you have a working version, you can extend the source code and produce your own production web server.
-That's much easier than producing one from scratch.
+Producing the right design for the database often takes several attempts.
+The scaffolder gives you a quick and easy way to experiment with different versions..
 
 Software testers may also find the scaffolder useful.
 Testers often have to create carefully-crafted database content
 to drive a set of tests.
-The scaffolder provides a bespoke tool for doing that.
+The scaffolder provides bespoke tools for doing that.
 
 Producing a complete piece of working source code also makes the scaffolder
 a very useful aid to learning Go.
 That means that it may be used by people who are new to Go and
 possibly new to programming.
 This document assumes a fair amount of specialist knowledge.
-[These notes](http://www.goblimey.com/scaffolder/).
-describes the scaffolder in at a gentler pace and 
+[These notes](http://www.goblimey.com/scaffolder/)
+describe the scaffolder at a gentler pace and 
 covers basic issues such as installing Go and MySQL.
 
 In this version
@@ -133,7 +131,7 @@ you can add, commit and push them.
 The JSON Specification
 ======================
 
-The scaffolder is driven by a text file in JSON) format that specifies a database and a set of tables.
+The scaffolder is driven by a text file in JSON format that specifies a database and a set of tables.
 
 When you are writing JSON, it's very easy to make a simple mistake such as missing out a comma.
 The resulting error messages may not be very helpful.
@@ -190,8 +188,8 @@ The example specification defines a MySQL database called "animals" containing t
     }
 
 In the example, the first few lines of the JSON define the project and its database.
-In this case the project is the one we created earlier - animals .
-The resulting server controls a MySQL database called "animals".
+The project is the one we created earlier - animals .
+The resulting server uses a MySQL database called "animals".
 
 The sourcebase defines the location of the project.
 In this example the sourcebase is "github.com/alunsmithie/animals",
@@ -202,21 +200,22 @@ You created that directory in the previous section.
 When the scaffolder creates files, it creates them within this directory.
 
 The database definition specifies the user name and password
-("webuser" and "secret" in this example)
-and the name of the database server and the port that it is listening on.
+("webuser" and "secret" in this example),
+the name of the database server and the port that it is listening on.
 In this case the server machine is "localhost" (this computer) 
 and the MySQL server is listening on its default port.
 (If not you can specify the port  like so: "dbport": "1234".)
 
-Go supports a number of Object-Realational Mapping (ORM) tools
-to manage the connection with a datbase.
+Go has a number of Object-Relational Mapping (ORM) tools
+to manage the connection with a database.
 The ORM value says which one to use.  
 At present
 the only one supported is [GORP](https://github.com/coopernurse/gorp) version 1.
 I plan to add support for other ORMs in the future.
 
 The Resources section defines a list of resources.
-Each resource definition produces a database table, a model, a repository, 
+When you run the scaffolder, 
+for each resource it produces a database table, a model, a repository, 
 a controller and a set of views.
 This example describes the "cat" resource and the "mouse" resource supported by the table with the same name as its resource.
 
@@ -227,7 +226,7 @@ If that won't do, you can specify the table name like so:
 
     "name": "mouse", "plural": "mice",
 
-Each resource section defines a list of fields.  The cat resource has fields "name" and "breed" which contain strings,
+Each resource contains a list of fields.  The cat resource has fields "name" and "breed" which contain strings,
 "age" containing an integer
 "weight" containing a floating point number
 and "chipped" containing a boolean value,
