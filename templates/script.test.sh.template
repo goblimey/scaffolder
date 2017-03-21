@@ -80,11 +80,6 @@ echo ${dir}
 cd ${homeDir}/$dir
 ${testcmd}
 
-dir='generated/crud/forms/{{.NameWithLowerFirst}}'
-echo ${dir}
-cd ${homeDir}/src/$dir
-${testcmd}
-
 dir='generated/crud/controllers/{{.NameWithLowerFirst}}'
 echo ${dir}
 cd ${homeDir}/$dir

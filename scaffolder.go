@@ -101,6 +101,7 @@ type Spec struct {
 	NameWithLowerFirst string
 	NameAllUpper       string
 	Imports            string
+	CurrentDir         string
 	Resources          []Resource
 }
 
@@ -207,6 +208,16 @@ func main() {
 	}
 	if verbose {
 		log.Printf("formatted specification\n%s\n", data)
+	}
+
+	// Get the full pathname of the current working directory and add it to
+	// the spec.
+
+	spec.CurrentDir, err = os.Getwd()
+	if err != nil {
+		log.Printf("cannot get current directory - %s",
+			err.Error())
+		os.Exit(-1)
 	}
 
 	// If the templateDir is not specified, produce templates from the built-in

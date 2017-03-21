@@ -162,6 +162,9 @@ func (c Controller) Create(req *restful.Request, resp *restful.Response,
 
 	if !(form.Valid()) {
 		// validation errors.  Return to create screen with error messages in the form data
+		if c.verbose {
+			log.Printf("Validation failed\n")
+		}
 		page := c.services.Template("{{.NameWithLowerFirst}}", "Create")
 		if page == nil {
 			em := fmt.Sprintf("internal error displaying Create page - no HTML template")
@@ -225,7 +228,7 @@ func (c Controller) Edit(req *restful.Request, resp *restful.Response,
 	// If the data is invalid, continue - the user may be trying to fix it.
 
 	form.Set{{.NameWithUpperFirst}}({{.NameWithLowerFirst}})
-	if !form.Validate() {
+	if c.verbose && !form.Validate() {
 		em := fmt.Sprintf("invalid record in the {{.PluralNameWithLowerFirst}} database - %s",
 			{{.NameWithLowerFirst}}.String())
 		log.Printf("%s\n", em)
@@ -262,6 +265,9 @@ func (c Controller) Update(req *restful.Request, resp *restful.Response,
 	if !form.Valid() {
 		// The supplied data is invalid.  The validator has set error messages.  
 		// Return to the edit screen.
+		if c.verbose {
+			log.Printf("Validation failed\n")
+		}
 		page := c.services.Template("{{.NameWithLowerFirst}}", "Edit")
 		if page == nil {
 			em := fmt.Sprintf("internal error displaying Edit page - no HTML template")
@@ -848,51 +854,74 @@ func TestUnitSuccessfulCreate(t *testing.T) {
 func TestUnitCreateFailsWithMissingFields(t *testing.T) {
 
 	log.SetPrefix("TestUnitCreateFailsWithMissingFields ")
-{{range .Fields}}
-	{{if and .Mandatory (eq .Type "string")}}
-		expectedErrorMessage{{.NameWithUpperFirst}} := "you must specify the {{.NameWithLowerFirst}}"
+	
+	// This test only makes sense when there are mandatory fields in the form. 
+	mandatoryFieldCount := 0
+	{{range .Fields}}
+		{{if and .Mandatory (eq .Type "string")}}
+			mandatoryFieldCount++	// {{.NameWithLowerFirst}} is mandatory
+		{{end}}
 	{{end}}
-{{end}}
-	pegomock.RegisterMockTestingT(t)
 	
-	var expectedID1 uint64 = 42
-	// supply empty string for mandatory string fields, the given values for others.
-	expected{{.NameWithUpperFirst}}1 := {{.NameWithLowerFirst}}.MakeInitialised{{$resourceNameUpper}}(expectedID1, {{range .Fields}}{{if and .Mandatory (eq .Type "string")}}"  "{{else}}expected{{.NameWithUpperFirst}}1{{end}}{{if not .LastItem}}, {{end}}{{end}})
-	singleItemForm := {{.NameWithLowerFirst}}Forms.MakeInitialisedSingleItemForm(expected{{.NameWithUpperFirst}}1)
-
-	// Create the mocks and dummy objects.
+	if mandatoryFieldCount > 0 {
+	{{range .Fields}}
+		{{if and .Mandatory (eq .Type "string")}}
+			expectedErrorMessage{{.NameWithUpperFirst}} := "you must specify the {{.NameWithLowerFirst}}"
+		{{end}}
+	{{end}}
+		pegomock.RegisterMockTestingT(t)
+		
+		var expectedID1 uint64 = 42
+		// supply empty string for mandatory string fields, the given values for others.
+		expected{{.NameWithUpperFirst}}1 := {{.NameWithLowerFirst}}.MakeInitialised{{$resourceNameUpper}}(expectedID1, {{range .Fields}}{{if and .Mandatory (eq .Type "string")}}"  "{{else}}expected{{.NameWithUpperFirst}}1{{end}}{{if not .LastItem}}, {{end}}{{end}})
+		singleItemForm := {{.NameWithLowerFirst}}Forms.MakeInitialisedSingleItemForm(expected{{.NameWithUpperFirst}}1)
 	
-	var url url.URL
-	url.Opaque = "/{{.PluralNameWithLowerFirst}}/42" // url.RequestURI() will return "/{{.PluralNameWithLowerFirst}}/42"
-	var httpRequest http.Request
-	httpRequest.URL = &url
-	httpRequest.Method = "POST"
-	var request restful.Request
-	request.Request = &httpRequest
-	writer := mocks.NewMockResponseWriter()
-	var response restful.Response
-	response.ResponseWriter = writer
-	mockTemplate := mocks.NewMockTemplate()
-
-	// Create a services layer that returns the mock create template.
-	mockServices := mocks.NewMockServices()
-	pegomock.When(mockServices.Template("{{.NameWithLowerFirst}}", "Create")).ThenReturn(mockTemplate)
-
-	// Run the test.
-	controller := MakeController(mockServices, false)
-
-	controller.Create(&request, &response, singleItemForm)
-
-	// If the {{.NameWithLowerFirst}} has mandatory string fields, verify that the 
-	// form contains the expected error messages.
-{{range .Fields}}
-	{{if and .Mandatory (eq .Type "string")}}
-		if singleItemForm.ErrorForField("{{.NameWithUpperFirst}}") != expectedErrorMessage{{.NameWithUpperFirst}} {
-			t.Errorf("Expected error message to be %s actually %s",
-				expectedErrorMessage{{.NameWithUpperFirst}}, singleItemForm.ErrorForField("{{.NameWithUpperFirst}}"))
+		// Create the mocks and dummy objects.
+		
+		var url url.URL
+		url.Opaque = "/{{.PluralNameWithLowerFirst}}/42" // url.RequestURI() will return "/{{.PluralNameWithLowerFirst}}/42"
+		var httpRequest http.Request
+		httpRequest.URL = &url
+		httpRequest.Method = "POST"
+		var request restful.Request
+		request.Request = &httpRequest
+		writer := mocks.NewMockResponseWriter()
+		var response restful.Response
+		response.ResponseWriter = writer
+		mockTemplate := mocks.NewMockTemplate()
+	
+		// Create a services layer that returns the other mocks.
+		mockServices := mocks.NewMockServices()
+		pegomock.When(mockServices.Template("{{.NameWithLowerFirst}}", "Create")).ThenReturn(mockTemplate)
+	
+		// Run the test.
+		
+		// In the app, the form is validated before the controller method is called.
+		// Validate the fome and check that it fails.
+		valid := singleItemForm.Validate()
+		if valid {
+			t.Errorf("Expected the validation method to return false (invalid)")
 		}
+	
+		// Check that the validation method set the valid flag in the form 
+		if singleItemForm.Valid() {
+			t.Errorf("Expected the form to be marked as invalid")
+		}
+		
+		controller := MakeController(mockServices, false)
+		controller.Create(&request, &response, singleItemForm)
+	
+		// If the {{.NameWithLowerFirst}} has mandatory string fields, verify that the 
+		// form contains the expected error messages.
+	{{range .Fields}}
+		{{if and .Mandatory (eq .Type "string")}}
+			if singleItemForm.ErrorForField("{{.NameWithUpperFirst}}") != expectedErrorMessage{{.NameWithUpperFirst}} {
+				t.Errorf("Expected error message to be %s actually %s",
+					expectedErrorMessage{{.NameWithUpperFirst}}, singleItemForm.ErrorForField("{{.NameWithUpperFirst}}"))
+			}
+		{{end}}
 	{{end}}
-{{end}}
+	}
 }
 
 // TestUnitCreateFailsWithDBError checks that the {{.NameWithLowerFirst}} handler's Create method
@@ -1093,6 +1122,7 @@ func MakeSingleItemForm() SingleItemForm {
 func MakeInitialisedSingleItemForm({{.NameWithLowerFirst}} {{.NameWithLowerFirst}}.{{.NameWithUpperFirst}}) SingleItemForm {
 	form := MakeSingleItemForm()
 	form.Set{{.NameWithUpperFirst}}({{.NameWithLowerFirst}})
+	form.SetValid(true)
 	return form
 }
 
@@ -1174,18 +1204,18 @@ func (form *ConcreteSingleItemForm) SetValid(value bool) {
 // Validate validates the data in the {{.NameWithUpperFirst}} and sets the various error messages.
 // It returns true if the data is valid, false if there are errors.
 func (form *ConcreteSingleItemForm) Validate() bool {
-	valid := true
+	form.isValid = true
 
 	// Trim and test all mandatory string items. 
 	{{range .Fields}}
 		{{if and .Mandatory (eq .Type "string")}}
 			if len(strings.TrimSpace(form.{{$resourceNameLower}}.{{.NameWithUpperFirst}}())) <= 0 {
 					form.SetErrorMessageForField("{{.NameWithUpperFirst}}", "you must specify the {{.NameWithLowerFirst}}")
-					valid = false
+					form.isValid = false
 				}
 		{{end}}
 	{{end}}
-	return valid
+	return form.isValid
 }`
 		templateText = substituteGraves(templateText)
 		templateMap[templateName] =
@@ -3401,11 +3431,6 @@ ${testcmd}
 dir='generated/crud/forms/{{.NameWithLowerFirst}}'
 echo ${dir}
 cd ${homeDir}/$dir
-${testcmd}
-
-dir='generated/crud/forms/{{.NameWithLowerFirst}}'
-echo ${dir}
-cd ${homeDir}/src/$dir
 ${testcmd}
 
 dir='generated/crud/controllers/{{.NameWithLowerFirst}}'
