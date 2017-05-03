@@ -544,6 +544,6 @@ REST requires that requests containing parameters are only used to submit form d
 
     GET /cats?operation=delete&id=42
 
-it doesn't follow the REST rules, firstly because it's using a GET request to change the data and secondly because it uses parameters but it's not carrying form data.
+it doesn't follow the REST rules, firstly because it's using a GET request to change the database and secondly because it uses parameters but it's not carrying form data.
 
 
